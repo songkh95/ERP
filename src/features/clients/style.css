@@ -151,3 +151,63 @@ button { cursor: pointer; border-radius: 4px; font-weight: bold; }
     border-color: #007bff;
     box-shadow: 0 0 5px rgba(0, 123, 255, 0.2);
 }
+
+/* ... 기존 스타일 아래에 추가 ... */
+
+/* 보유 기기 목록 컨테이너 */
+.asset-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+/* 기기 배지 스타일 (예: [신도리코 D410]) */
+.asset-badge {
+    background-color: #e3f2fd;
+    color: #0d47a1;
+    border: 1px solid #bbdefb;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.asset-badge i { font-size: 1rem; } /* 프린터 아이콘 */
+.asset-count { color: #666; font-size: 0.8rem; margin-left: 5px;}
+
+/* ... 기존 스타일 아래 ... */
+
+/* 미니 리스트 (고객 상세정보 안의 기기 목록) */
+.mini-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border: 1px solid #eee;
+    background: white;
+    max-height: 150px;
+    overflow-y: auto;
+}
+.mini-list li {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 0.9rem;
+}
+
+/* 작은 버튼들 */
+.btn-tiny {
+    padding: 4px 8px; border: 1px solid #ccc; background: white; cursor: pointer; border-radius: 4px; font-size: 0.8rem;
+}
+.btn-tiny.active {
+    background: #6c5ce7; color: white; border-color: #6c5ce7;
+}
+
+.btn-secondary {
+    background-color: #6c5ce7; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;
+}
+
+/* 기기 관리 섹션이 꺼져있을 때 */
+.hidden { display: none !important; }

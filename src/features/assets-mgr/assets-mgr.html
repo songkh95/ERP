@@ -1,0 +1,76 @@
+<section class="assets-page">
+    <h1>📦 자산 및 기기 관리</h1>
+
+    <div class="control-panel">
+        <button id="btn-toggle-form" class="btn-primary">➕ 기기 입고/등록</button>
+        
+        <div class="search-panel-simple">
+            <select id="search-filter">
+                <option value="all">전체</option>
+                <option value="serial">시리얼번호</option>
+                <option value="model">모델명</option>
+                <option value="client">고객사</option>
+            </select>
+            <input type="text" id="search-input" placeholder="검색어 입력...">
+        </div>
+    </div>
+
+    <div id="form-panel" class="input-panel hidden">
+        <h3 id="form-title">📝 기기 정보 입력</h3>
+        
+        <div class="form-section">
+            <label>① 모델 선택</label>
+            <div style="display: flex; gap: 10px;">
+                <select id="select-model" style="flex: 1;">
+                    <option value="">-- 모델을 선택하세요 --</option>
+                </select>
+                <button id="btn-new-model-mode" class="btn-secondary" style="font-size: 0.8rem; width: 120px;">
+                    ✨ 새 모델 만들기
+                </button>
+            </div>
+
+            <div id="new-model-inputs" class="hidden" style="margin-top: 10px; background: #e3f2fd; padding: 10px; border-radius: 4px;">
+                <p style="margin: 0 0 5px 0; font-size: 0.9rem; color: #0d47a1;"><b>🆕 신규 모델 정보</b></p>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="input-new-brand" placeholder="제조사 (예: 신도리코)">
+                    <input type="text" id="input-new-model" placeholder="모델명 (예: N600)">
+                    <select id="input-new-type">
+                        <option value="컬러">컬러</option>
+                        <option value="흑백">흑백</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <hr style="margin: 15px 0; border: 0; border-top: 1px dashed #ccc;">
+
+        <div class="form-section">
+            <label>② 기기 상세 (시리얼/설치처)</label>
+            <div class="form-group">
+                <input type="text" id="input-serial" placeholder="시리얼 번호 (S/N) - 필수">
+                <select id="input-status">
+                    <option value="재고">📦 재고 (창고)</option>
+                    <option value="사용중">✅ 사용중 (설치됨)</option>
+                    <option value="수리중">🔧 수리중</option>
+                    <option value="폐기">🗑️ 폐기</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label style="display:flex; align-items:center;">🏢 설치된 고객사:</label>
+                <select id="select-client" style="flex: 1;">
+                    <option value="">(미지정 - 창고 보관)</option>
+                    </select>
+            </div>
+        </div>
+
+        <div class="btn-right" style="margin-top: 20px;">
+            <button id="btn-cancel" class="btn-cancel">취소</button>
+            <button id="btn-save" class="btn-save">저장하기</button>
+        </div>
+    </div>
+
+    <ul id="asset-list-ul" class="data-list">
+        <li>데이터 로딩 중...</li>
+    </ul>
+</section>

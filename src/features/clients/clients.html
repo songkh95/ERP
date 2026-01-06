@@ -1,34 +1,63 @@
 <section class="client-page">
-    <h1>📋 고객 관리</h1>
+    <h1>📋 고객사 관리</h1>
     
-    <div class="page-header">
-        <button id="btn-toggle-form" class="btn-primary">➕ 신규 등록 열기</button>
-    </div>
-    
-    <div class="search-panel">
-        <div class="search-box">
-            <i class='bx bx-search'></i>
-            <input type="text" id="search-name" placeholder="고객사명 검색...">
-        </div>
-        <div class="search-box">
-            <i class='bx bx-user'></i>
-            <input type="text" id="search-contact" placeholder="담당자명 검색...">
+    <div class="control-panel" style="display:flex; justify-content:space-between; margin-bottom:15px;">
+        <button id="btn-toggle-form" class="btn-primary">➕ 신규 고객 등록</button>
+        
+        <div class="search-panel-simple" style="display:flex; gap:5px;">
+            <input type="text" id="search-input" placeholder="고객명 또는 담당자 검색..." style="padding:8px; border:1px solid #ccc; border-radius:4px; width:250px;">
         </div>
     </div>
 
     <div id="form-panel" class="input-panel hidden">
-        <h3>새 고객 정보 입력</h3>
-        <div class="form-group">
-            <input type="text" id="input-name" placeholder="거래처">
-            <input type="text" id="input-contact" placeholder="담당자">
+        <h3 id="form-title">새 고객 정보 입력</h3>
+        
+        <div class="form-section">
+            <label>기본 정보</label>
+            <div class="form-group">
+                <input type="text" id="input-name" placeholder="고객사 이름 (필수)">
+                <input type="text" id="input-contact" placeholder="담당자 / 연락처">
+            </div>
+            <div style="text-align: right; margin-bottom: 10px;">
+                <button id="btn-save" class="btn-save">저장하기</button>
+                <button id="btn-cancel" class="btn-cancel">닫기</button>
+            </div>
         </div>
-        <div style="text-align: right;">
-            <button id="btn-cancel" class="btn-cancel">취소</button>
-            <button id="btn-save" class="btn-save">저장하기</button>
+
+        <div id="asset-manage-section" class="hidden" style="border-top: 2px dashed #ddd; margin-top: 20px; padding-top: 20px;">
+            <h4 style="margin-bottom: 10px;">🖨️ 보유 복합기 관리</h4>
+            
+            <ul id="client-asset-list" class="mini-list">
+                <li>보유 중인 기기가 없습니다.</li>
+            </ul>
+
+            <div style="background: #f1f3f5; padding: 10px; border-radius: 4px; margin-top: 10px;">
+                <div style="margin-bottom: 5px; font-weight: bold; font-size: 0.9rem;">기기 추가/등록</div>
+                
+                <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                    <button id="tab-assign-exist" class="btn-tiny active">📦 재고에서 가져오기</button>
+                    <button id="tab-create-new" class="btn-tiny">✨ 새 기기 등록하기</button>
+                </div>
+
+                <div id="box-assign-exist" style="display: flex; gap: 5px;">
+                    <select id="select-stock-asset" style="flex: 1; padding: 5px;">
+                        <option value="">-- 창고(재고) 기기 선택 --</option>
+                    </select>
+                    <button id="btn-add-stock" class="btn-secondary">추가</button>
+                </div>
+
+                <div id="box-create-new" class="hidden" style="display: flex; gap: 5px;">
+                    <select id="select-new-model" style="flex: 1; padding: 5px;">
+                        <option value="">모델 선택</option>
+                    </select>
+                    <input type="text" id="input-new-serial" placeholder="S/N 입력" style="width: 120px; padding: 5px;">
+                    <button id="btn-create-asset" class="btn-secondary">등록</button>
+                </div>
+            </div>
         </div>
     </div>
     
     <ul id="client-list-ul" class="client-list">
-        <li style="justify-content:center; color:#999;">데이터 로딩 중...</li>
+        <li>데이터 로딩 중...</li>
     </ul>
 </section>

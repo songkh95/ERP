@@ -1,18 +1,17 @@
 // main.js
 import * as Dashboard from './src/features/dashboard/dashboard.js';
 import * as Clients from './src/features/clients/clients.js';
-// * 아직 안 만든 파일들은 import 하면 에러나니까 일단 주석 처리하거나, 파일이 있다면 푸세요.
-// import * as AssetsMgr from './src/features/assets-mgr/assets-mgr.js'; 
+import * as AssetsMgr from './src/features/assets-mgr/assets-mgr.js'; 
 // import * as Service from './src/features/service/service.js';
 
 // 라우트 설정
 const routes = {
     'dashboard': Dashboard,
     'clients': Clients,
-    'assets-mgr': { render: () => '<h1>🚧 준비 중입니다</h1>', init: () => {} }, // 임시
-    'service': { render: () => '<h1>🚧 준비 중입니다</h1>', init: () => {} }     // 임시
+    // 2. 주석 해제 및 연결 (route 설정)
+    'assets-mgr': AssetsMgr, 
+    'service': { render: () => '<h1>🚧 준비 중입니다</h1>', init: () => {} }
 };
-
 
 async function navigate(target, titleName) {
     const app = document.getElementById('app');
