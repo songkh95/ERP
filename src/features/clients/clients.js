@@ -26,7 +26,7 @@ export async function init() {
 
     // 상태 변수
     let editingId = null;
-    let allClients = []; // ★ 전체 데이터를 저장해두는 창고
+    let allClients = []; // 전체 데이터를 저장해두는 창고
 
     // 1. 초기 데이터 로드
     await loadData();
