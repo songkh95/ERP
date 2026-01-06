@@ -1,37 +1,10 @@
-// src/features/clients/clients.js
 import { supabase } from '../../common/db.js';
-import { loadCSS } from '../../common/utils.js';
+import { loadCSS, loadHTML } from '../../common/utils.js';
 
-// 1. 화면 그리기
-export function render() {
-    return `
-        <section class="client-page">
-            <h1>📋 고객 관리</h1>
-            
-            <div class="page-header">
-                <button id="btn-toggle-form" class="btn-primary">➕ 신규 등록 열기</button>
-            </div>
-
-            <div id="form-panel" class="input-panel hidden">
-                <h3>새 고객 정보 입력</h3>
-                <div class="form-group">
-                    <input type="text" id="input-name" placeholder="고객사 이름 (예: 크린솔루션)">
-                    <input type="text" id="input-contact" placeholder="담당자 (예: 김철수)">
-                </div>
-                <div style="text-align: right;">
-                    <button id="btn-cancel" class="btn-cancel">취소</button>
-                    <button id="btn-save" class="btn-save">저장하기</button>
-                </div>
-            </div>
-            
-            <ul id="client-list-ul" class="client-list">
-                데이터 로딩 중...
-            </ul>
-        </section>
-    `;
+export async function render() {
+    return await loadHTML('./src/features/clients/clients.html');
 }
 
-// 2. 기능 실행
 export async function init() {
     loadCSS('./src/features/clients/style.css');
 
@@ -41,84 +14,130 @@ export async function init() {
     const btnCancel = document.getElementById('btn-cancel');
     const btnSave = document.getElementById('btn-save');
     const ul = document.getElementById('client-list-ul');
-
-    // 초기 데이터 로드
-    loadData();
-
-    // [이벤트] 토글 & 취소 버튼
-    btnToggle.addEventListener('click', () => {
-        const isHidden = formPanel.classList.toggle('hidden');
-        updateToggleButton(isHidden);
-    });
     
-    btnCancel.addEventListener('click', () => {
-        formPanel.classList.add('hidden');
-        updateToggleButton(true);
-    });
+    // 입력 input
+    const inputName = document.getElementById('input-name');
+    const inputContact = document.getElementById('input-contact');
+    const panelTitle = formPanel.querySelector('h3');
 
-    function updateToggleButton(isHidden) {
-        if (isHidden) {
-            btnToggle.textContent = '➕ 신규 등록 열기';
-            btnToggle.style.backgroundColor = '#007bff';
-        } else {
-            btnToggle.textContent = '🔼 입력창 닫기';
-            btnToggle.style.backgroundColor = '#6c757d';
-        }
-    }
+    // [추가됨] 검색 input
+    const searchName = document.getElementById('search-name');
+    const searchContact = document.getElementById('search-contact');
 
-    // [이벤트] 저장 버튼
-    btnSave.addEventListener('click', async () => {
-        const name = document.getElementById('input-name').value;
-        const contact = document.getElementById('input-contact').value;
+    // 상태 변수
+    let editingId = null;
+    let allClients = []; // ★ 전체 데이터를 저장해두는 창고
 
-        if (!name) return alert('고객사 이름을 입력해주세요!');
+    // 1. 초기 데이터 로드
+    await loadData();
 
-        const { error } = await supabase.from('clients').insert({
-            name: name,
-            contact_person: contact
+    // --- [추가됨] 검색 이벤트 리스너 ---
+    // 키보드를 뗄 때(keyup)마다 필터링 실행
+    searchName.addEventListener('keyup', filterData);
+    searchContact.addEventListener('keyup', filterData);
+
+    // ★ 필터링 함수
+    function filterData() {
+        const nameKeyword = searchName.value.toLowerCase(); // 소문자로 변환 (대소문자 무시)
+        const contactKeyword = searchContact.value.toLowerCase();
+
+        // 전체 데이터(allClients) 중에서 조건에 맞는 것만 골라냄
+        const filtered = allClients.filter(client => {
+            const name = (client.name || '').toLowerCase();
+            const contact = (client.contact_person || '').toLowerCase();
+
+            // 이름에도 포함되고(AND) 담당자에도 포함되는 것
+            return name.includes(nameKeyword) && contact.includes(contactKeyword);
         });
 
-        if (error) {
-            console.error(error);
-            alert('저장 실패!');
+        // 걸러진 목록만 화면에 그리기
+        renderList(filtered);
+    }
+
+    // --- 기본 기능 (토글, 저장, 수정, 삭제) ---
+    const toggleForm = (show) => {
+        if (show) {
+            formPanel.classList.remove('hidden');
+            btnToggle.textContent = '🔼 입력창 닫기';
+            btnToggle.style.backgroundColor = '#6c757d';
         } else {
-            alert('등록되었습니다.');
-            document.getElementById('input-name').value = '';
-            document.getElementById('input-contact').value = '';
-            loadData(); // 목록 새로고침
+            formPanel.classList.add('hidden');
+            btnToggle.textContent = '➕ 신규 등록 열기';
+            btnToggle.style.backgroundColor = '#007bff';
+            resetFormMode();
         }
-    });
+    };
 
-    // ★ [이벤트] 삭제 버튼 기능 (이벤트 위임 방식)
-    // 리스트(ul)에 이벤트를 걸어서, 그 안의 삭제 버튼 클릭을 감지합니다.
-    ul.addEventListener('click', async (e) => {
-        // 클릭한 요소가 'btn-delete' 클래스를 가지고 있는지 확인
-        if (e.target.classList.contains('btn-delete')) {
-            const clientName = e.target.dataset.name; // 이름 가져오기
-            const clientId = e.target.dataset.id;     // ID 가져오기
+    function resetFormMode() {
+        editingId = null;
+        inputName.value = '';
+        inputContact.value = '';
+        btnSave.textContent = '저장하기';
+        panelTitle.textContent = '새 고객 정보 입력';
+    }
 
-            // 1. 진짜 지울 건지 물어보기
-            const isConfirmed = confirm(`정말 '${clientName}' 고객을 삭제하시겠습니까?\n(복구할 수 없습니다)`);
+    if(btnToggle) {
+        btnToggle.addEventListener('click', () => {
+            const isHidden = formPanel.classList.contains('hidden');
+            if (isHidden) resetFormMode();
+            toggleForm(isHidden);
+        });
+    }
+    if(btnCancel) btnCancel.addEventListener('click', () => toggleForm(false));
 
-            if (isConfirmed) {
-                // 2. Supabase에 삭제 요청 (Delete)
-                const { error } = await supabase
-                    .from('clients')
-                    .delete()
-                    .eq('id', clientId); // "id가 이것과 같은(eq) 녀석을 지워라"
+    if(btnSave) {
+        btnSave.addEventListener('click', async () => {
+            const name = inputName.value;
+            const contact = inputContact.value;
 
-                if (error) {
-                    console.error('삭제 실패:', error);
-                    alert('삭제 중 오류가 발생했습니다.');
-                } else {
+            if (!name) return alert('이름을 입력해주세요!');
+
+            let result;
+            if (editingId) {
+                result = await supabase.from('clients').update({ name, contact_person: contact }).eq('id', editingId);
+            } else {
+                result = await supabase.from('clients').insert({ name, contact_person: contact });
+            }
+
+            const { error } = result;
+            if (error) {
+                alert('오류 발생');
+            } else {
+                alert(editingId ? '수정되었습니다.' : '등록되었습니다.');
+                toggleForm(false);
+                loadData(); // 데이터 다시 가져오기
+            }
+        });
+    }
+
+    if(ul) {
+        ul.addEventListener('click', async (e) => {
+            const btnEdit = e.target.closest('.btn-edit');
+            const btnDelete = e.target.closest('.btn-delete');
+
+            if (btnEdit) {
+                editingId = btnEdit.dataset.id;
+                inputName.value = btnEdit.dataset.name;
+                inputContact.value = btnEdit.dataset.contact;
+                panelTitle.textContent = `'${btnEdit.dataset.name}' 정보 수정`;
+                btnSave.textContent = '수정 완료';
+                toggleForm(true);
+            }
+
+            if (btnDelete) {
+                const name = btnDelete.dataset.name;
+                if (confirm(`정말 '${name}' 고객을 삭제하시겠습니까?`)) {
+                    await supabase.from('clients').delete().eq('id', btnDelete.dataset.id);
                     alert('삭제되었습니다.');
-                    loadData(); // 3. 목록 새로고침
+                    loadData();
                 }
             }
-        }
-    });
+        });
+    }
 
-    // 데이터 불러오기 함수
+    // --- [변경됨] 데이터 가져오기 & 그리기 분리 ---
+    
+    // 1. Supabase에서 데이터만 가져와서 allClients에 저장
     async function loadData() {
         const { data, error } = await supabase
             .from('clients')
@@ -127,22 +146,46 @@ export async function init() {
         
         if (error) return console.error(error);
 
-        if (data.length === 0) {
-            ul.innerHTML = '<li style="justify-content:center; color:#999;">등록된 고객이 없습니다.</li>';
-        } else {
-            ul.innerHTML = data.map(client => `
-                <li>
-                    <div class="client-info">
-                        <span style="font-weight:bold; font-size:1.1em;">${client.name}</span>
-                        <span style="color: #666; font-size: 0.9em;">
-                            👤 ${client.contact_person || '담당자 미정'}
-                        </span>
-                    </div>
-                    <button class="btn-delete" data-id="${client.id}" data-name="${client.name}">
+        // 전역 변수에 저장 (검색할 때 쓰려고)
+        allClients = data;
+        
+        // 검색창 초기화
+        searchName.value = '';
+        searchContact.value = '';
+
+        // 전체 목록 그리기
+        renderList(allClients);
+    }
+
+    // 2. 받은 리스트를 화면(HTML)에 그리는 함수 (재사용)
+    function renderList(listData) {
+        if (listData.length === 0) {
+            ul.innerHTML = '<li style="justify-content:center; color:#999;">검색 결과가 없습니다.</li>';
+            return;
+        }
+
+        ul.innerHTML = listData.map(client => `
+            <li>
+                <div class="client-info">
+                    <span style="font-weight:bold; font-size:1.1em;">${client.name}</span>
+                    <span style="color: #666; font-size: 0.9em;">
+                        👤 ${client.contact_person || '미정'}
+                    </span>
+                </div>
+                <div class="btn-group">
+                    <button class="btn-edit" 
+                        data-id="${client.id}" 
+                        data-name="${client.name}" 
+                        data-contact="${client.contact_person || ''}">
+                        수정
+                    </button>
+                    <button class="btn-delete" 
+                        data-id="${client.id}" 
+                        data-name="${client.name}">
                         삭제
                     </button>
-                </li>
-            `).join('');
-        }
+                </div>
+            </li>
+        `).join('');
     }
 }

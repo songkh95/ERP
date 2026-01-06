@@ -13,6 +13,7 @@ const routes = {
     'service': { render: () => '<h1>🚧 준비 중입니다</h1>', init: () => {} }     // 임시
 };
 
+
 async function navigate(target, titleName) {
     const app = document.getElementById('app');
     const pageTitle = document.getElementById('page-title');
@@ -20,13 +21,14 @@ async function navigate(target, titleName) {
 
     if (!module) return;
 
-    // 1. 상단 제목 변경
+    // 제목 변경
     pageTitle.textContent = titleName || 'CS ERP';
 
-    // 2. 화면 그리기
-    app.innerHTML = module.render();
+    // [수정됨] render 함수 앞에 await를 붙여야 합니다!
+    // HTML 파일을 읽어올 때까지 기다려야 하기 때문입니다.
+    app.innerHTML = await module.render(); 
 
-    // 3. 기능 실행
+    // 기능 실행
     if (module.init) {
         await module.init();
     }

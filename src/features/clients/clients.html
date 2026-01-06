@@ -1,0 +1,34 @@
+<section class="client-page">
+    <h1>📋 고객 관리</h1>
+    
+    <div class="page-header">
+        <button id="btn-toggle-form" class="btn-primary">➕ 신규 등록 열기</button>
+    </div>
+    
+    <div class="search-panel">
+        <div class="search-box">
+            <i class='bx bx-search'></i>
+            <input type="text" id="search-name" placeholder="고객사명 검색...">
+        </div>
+        <div class="search-box">
+            <i class='bx bx-user'></i>
+            <input type="text" id="search-contact" placeholder="담당자명 검색...">
+        </div>
+    </div>
+
+    <div id="form-panel" class="input-panel hidden">
+        <h3>새 고객 정보 입력</h3>
+        <div class="form-group">
+            <input type="text" id="input-name" placeholder="거래처">
+            <input type="text" id="input-contact" placeholder="담당자">
+        </div>
+        <div style="text-align: right;">
+            <button id="btn-cancel" class="btn-cancel">취소</button>
+            <button id="btn-save" class="btn-save">저장하기</button>
+        </div>
+    </div>
+    
+    <ul id="client-list-ul" class="client-list">
+        <li style="justify-content:center; color:#999;">데이터 로딩 중...</li>
+    </ul>
+</section>

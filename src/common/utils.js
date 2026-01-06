@@ -12,3 +12,16 @@ export function loadCSS(filePath) {
     link.href = filePath;
     document.head.appendChild(link);
 }
+
+
+// HTML 파일을 읽어와서 텍스트로 반환하는 함수
+export async function loadHTML(filePath) {
+    try {
+        const response = await fetch(filePath); // 파일을 가지러 감
+        if (!response.ok) throw new Error('HTML 로드 실패');
+        return await response.text(); // 파일 내용을 글자로 변환해서 줌
+    } catch (error) {
+        console.error(error);
+        return `<h1 style="color:red">에러: ${filePath} 파일을 찾을 수 없습니다.</h1>`;
+    }
+}
