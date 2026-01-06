@@ -5,22 +5,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clean Solution ERP</title>
     <link rel="stylesheet" href="main.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <script type="module" src="main.js"></script>
 </head>
 <body>
     <div class="layout">
         <nav class="sidebar">
-            <h2>CS ERP</h2>
-            <ul>
-                <li><button data-target="dashboard">홈(대시보드)</button></li>
-                <li><button data-target="clients">고객 관리</button></li>
-                <li><button data-target="assets-mgr">자산 관리</button></li>
-                <li><button data-target="service">AS 접수</button></li>
+            <div class="brand">
+                <i class='bx bxs-printer'></i> CS ERP
+            </div>
+            <ul class="menu">
+                <li>
+                    <button data-target="dashboard" data-title="대시보드">
+                        <i class='bx bxs-dashboard'></i> 홈 (대시보드)
+                    </button>
+                </li>
+                <li>
+                    <button data-target="clients" data-title="고객사 관리">
+                        <i class='bx bxs-user-detail'></i> 고객 관리
+                    </button>
+                </li>
+                <li>
+                    <button data-target="assets-mgr" data-title="자산(복합기) 관리">
+                        <i class='bx bxs-cube'></i> 자산 관리
+                    </button>
+                </li>
+                <li>
+                    <button data-target="service" data-title="AS 유지보수 접수">
+                        <i class='bx bxs-wrench'></i> AS 접수
+                    </button>
+                </li>
             </ul>
+            <div class="user-info">
+                <p>홍길동 님</p>
+                <small>수석 개발자</small>
+            </div>
         </nav>
 
-        <main id="app">
-            </main>
+        <div class="content-wrapper">
+            <header class="top-bar">
+                <h2 id="page-title">대시보드</h2> </header>
+
+            <main id="app">
+                </main>
+        </div>
     </div>
 </body>
 </html>
