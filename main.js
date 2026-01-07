@@ -34,6 +34,15 @@ async function navigate(target, titleName) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
+    const layout = document.querySelector('.layout'); // 전체를 감싸는 div
+
+    if (btnToggleSidebar) {
+        btnToggleSidebar.addEventListener('click', () => {
+            // 'collapsed' 클래스가 있으면 빼고, 없으면 넣음
+            layout.classList.toggle('collapsed');
+        });
+    }
     // 메뉴 클릭 이벤트 위임
     const menuContainer = document.querySelector('.menu');
 

@@ -99,3 +99,20 @@ button { cursor: pointer; border-radius: 4px; font-weight: bold; border: none; p
 .st-stock { background: #eee; color: #555; }   /* 재고 */
 .st-active { background: #e3f2fd; color: #007bff; } /* 사용중 */
 .st-repair { background: #fff3e0; color: #ff9800; } /* 수리중 */
+
+/* 빨간 아이콘 버튼 (모델 삭제용) */
+.btn-icon-red {
+    background: white;
+    border: 1px solid #e74c3c;
+    color: #e74c3c;
+    border-radius: 4px;
+    padding: 8px 10px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: 0.2s;
+    display: flex; align-items: center; justify-content: center;
+}
+.btn-icon-red:hover {
+    background: #e74c3c;
+    color: white;
+}

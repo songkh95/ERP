@@ -1,5 +1,5 @@
 <section class="assets-page">
-    <h1>📦 자산 및 기기 관리</h1>
+    <h1>📦 자산 및 기기 관리 <span id="total-asset-count" style="font-size:0.5em; background:#e3f2fd; color:#007bff; padding:2px 10px; border-radius:15px; vertical-align:middle; margin-left:5px;">0</span> </h1>
 
     <div class="control-panel">
         <button id="btn-toggle-form" class="btn-primary">➕ 기기 입고/등록</button>
@@ -18,13 +18,18 @@
     <div id="form-panel" class="input-panel hidden">
         <h3 id="form-title">📝 기기 정보 입력</h3>
         
-        <div class="form-section">
+       <div class="form-section">
             <label>① 모델 선택</label>
-            <div style="display: flex; gap: 10px;">
+            <div style="display: flex; gap: 5px; align-items: center;">
                 <select id="select-model" style="flex: 1;">
                     <option value="">-- 모델을 선택하세요 --</option>
                 </select>
-                <button id="btn-new-model-mode" class="btn-secondary" style="font-size: 0.8rem; width: 120px;">
+                
+                <button id="btn-delete-model" class="btn-icon-red" title="선택한 모델 삭제 (기기가 0대일 때만 가능)">
+                    <i class='bx bx-trash'></i>
+                </button>
+
+                <button id="btn-new-model-mode" class="btn-secondary" style="font-size: 0.8rem; width: 130px;">
                     ✨ 새 모델 만들기
                 </button>
             </div>

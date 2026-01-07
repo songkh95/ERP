@@ -211,3 +211,71 @@ button { cursor: pointer; border-radius: 4px; font-weight: bold; }
 
 /* 기기 관리 섹션이 꺼져있을 때 */
 .hidden { display: none !important; }
+
+/* --- [추가됨] 리스트 아코디언 스타일 --- */
+
+/* 리스트 아이템 내부 구조 변경 */
+.client-list li {
+    display: block; /* flex 대신 block으로 변경 (위아래 배치를 위해) */
+    padding: 0;     /* 패딩 초기화 */
+    cursor: default;
+}
+
+/* 1. 요약 부분 (항상 보이는 곳) */
+.client-summary {
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    padding: 15px;
+    cursor: pointer; /* 손가락 모양 커서 */
+    transition: background 0.2s;
+}
+
+.client-summary:hover {
+    background-color: #f8f9fa;
+}
+
+/* 화살표 아이콘 회전 애니메이션 */
+.toggle-icon {
+    transition: transform 0.3s;
+    color: #999;
+    font-size: 1.2rem;
+    margin-right: 10px;
+}
+.expanded .toggle-icon {
+    transform: rotate(180deg); /* 펼쳐지면 뒤집기 */
+}
+
+/* 2. 상세 내용 부분 (평소엔 숨김) */
+.client-details {
+    background-color: #fafafa; /* 약간 어두운 배경 */
+    border-top: 1px dashed #ddd;
+    padding: 20px;
+    display: none; /* 기본 숨김 */
+}
+
+/* 펼쳐졌을 때 클래스 */
+.client-details.show {
+    display: block; /* 보이기 */
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 상세 정보 그리드 (정보가 많아질 때를 대비) */
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* 2단 배열 */
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.detail-item label {
+    font-size: 0.8rem; color: #888; display: block; margin-bottom: 3px;
+}
+.detail-item span {
+    font-weight: 500; color: #333;
+}

@@ -10,14 +10,45 @@ body { font-family: 'Pretendard', sans-serif; height: 100vh; overflow: hidden; c
 }
 
 /* --- 1. 사이드바 스타일 --- */
+/* --- 1. 사이드바 스타일 수정 (애니메이션 추가) --- */
 .sidebar {
     width: 240px;
-    background-color: #2c3e50; /* 진한 남색 */
+    background-color: #2c3e50;
     color: white;
     display: flex;
-    flex-direction: column; /* 위아래로 배치 */
-    height: 100%; /* 바닥까지 꽉 차게 */
-    flex-shrink: 0; /* 화면 줄어도 찌그러지지 않게 */
+    flex-direction: column;
+    height: 100%;
+    flex-shrink: 0;
+    
+    /* ★ 부드러운 움직임을 위한 핵심 코드 */
+    transition: width 0.3s ease; 
+    overflow: hidden; /* 너비가 줄어들 때 내부 글자가 삐져나오지 않게 */
+    white-space: nowrap; /* 글자 줄바꿈 방지 */
+}
+
+/* --- 2. 숨김 상태 클래스 (JS가 이 클래스를 넣었다 뺐다 함) --- */
+/* layout 태그에 'collapsed' 클래스가 붙으면 -> 그 안의 sidebar 너비를 0으로 만듦 */
+.layout.collapsed .sidebar {
+    width: 0px;
+}
+
+/* --- 3. 토글 버튼 스타일 (새로 추가) --- */
+.btn-icon {
+    background: none;
+    border: none;
+    font-size: 1.8rem; /* 아이콘 크기 */
+    cursor: pointer;
+    margin-right: 15px; /* 제목과의 간격 */
+    color: #333;
+    display: flex;
+    align-items: center;
+    padding: 5px;
+    border-radius: 4px;
+    transition: 0.2s;
+}
+
+.btn-icon:hover {
+    background-color: #eee; /* 마우스 올리면 회색 배경 */
 }
 
 .brand {

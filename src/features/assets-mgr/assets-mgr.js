@@ -27,6 +27,7 @@ export async function init() {
 
     // 새 모델 만들기 관련 DOM
     const btnNewModelMode = document.getElementById('btn-new-model-mode');
+    const btnDeleteModel = document.getElementById('btn-delete-model');
     const newModelInputs = document.getElementById('new-model-inputs');
     const inputNewBrand = document.getElementById('input-new-brand');
     const inputNewModel = document.getElementById('input-new-model');
@@ -69,7 +70,9 @@ export async function init() {
             .order('created_at', { ascending: false });
 
         if (error) return console.error(error);
-        allAssets = data;
+            allAssets = data;
+            const countSpan = document.getElementById('total-asset-count');
+        if (countSpan) countSpan.textContent = `${data.length}대`; // 예: "42대"
         renderList(allAssets);
     }
 
@@ -167,7 +170,43 @@ export async function init() {
 
     btnToggle.addEventListener('click', () => toggleForm(formPanel.classList.contains('hidden')));
     btnCancel.addEventListener('click', () => toggleForm(false));
+    
+    // 선택한 모델 삭제하기 (카탈로그 정리)
+    if (btnDeleteModel) {
+        btnDeleteModel.addEventListener('click', async () => {
+            const modelId = selModel.value;
+            
+            // 1. 선택된 모델이 없으면 경고
+            if (!modelId) return alert('삭제할 모델을 목록에서 선택해주세요.');
 
+            // 2. 현재 선택된 텍스트 가져오기 (확인 메시지용)
+            const modelText = selModel.options[selModel.selectedIndex].text;
+
+            if (!confirm(`정말 모델 목록에서 삭제하시겠습니까?\n\n대상: ${modelText}\n\n(주의: 해당 모델로 등록된 기기가 단 하나라도 있으면 삭제되지 않습니다.)`)) {
+                return;
+            }
+
+            // 3. Supabase 삭제 요청
+            const { error } = await supabase
+                .from('products')
+                .delete()
+                .eq('id', modelId);
+
+            if (error) {
+                // 외래키 제약조건 에러 (기기가 남아있는데 모델을 지우려 할 때)
+                if (error.code === '23503') { // Postgres FK violation code
+                    alert('❌ 삭제 실패!\n\n이 모델로 등록된 기기(Assets)가 아직 남아있습니다.\n기기를 먼저 모두 삭제하거나 모델을 변경해주세요.');
+                } else {
+                    alert('삭제 중 오류 발생: ' + error.message);
+                }
+            } else {
+                alert('🗑️ 모델이 삭제되었습니다.');
+                loadModels(); // 모델 목록 새로고침
+                selModel.value = ''; // 선택 초기화
+            }
+        });
+    }
+    
     // --- [기능 4] 저장 로직 (★ 제일 중요) ---
     btnSave.addEventListener('click', async () => {
         const serial = inputSerial.value;
@@ -227,6 +266,19 @@ export async function init() {
         }
     });
 
+    // -----------------------------------------------------------
+    // ★ [추가 기능] 설치처 선택 시 상태 자동 변경 (자동화)
+    // -----------------------------------------------------------
+    selClient.addEventListener('change', () => {
+        // 고객을 선택했다면? (value가 있으면)
+        if (selClient.value) {
+            inputStatus.value = '사용중'; // 자동으로 '사용중'으로 변경
+        } else {
+            // 고객 선택을 취소했다면? (미지정)
+            inputStatus.value = '재고';   // 자동으로 '재고'로 변경
+        }
+    });
+
     // --- [기능 5] 수정/삭제/검색 ---
     ul.addEventListener('click', async (e) => {
         const btnEdit = e.target.closest('.btn-edit');
@@ -256,31 +308,30 @@ export async function init() {
     });
 
     // 검색 로직
-   // --- [기능 5] 검색 로직 (수정됨) ---
+// --- [기능 5] 검색 로직 (상태 검색 추가됨) ---
     searchInput.addEventListener('keyup', () => {
-        const keyword = searchInput.value.toLowerCase();
-        const filterType = searchFilter.value; // all, serial, model, client
+        const keyword = searchInput.value.toLowerCase(); // 검색어
+        const filterType = searchFilter.value;           // 필터 종류
 
         const filtered = allAssets.filter(asset => {
-            // 1. 비교할 데이터들 준비 (없을 경우 대비해 빈 문자열 '' 처리)
+            // 1. 비교할 데이터들 준비
             const sn = asset.serial_number.toLowerCase();
-            const brand = (asset.products?.brand || '').toLowerCase();      // ★ 제조사 추가
-            const model = (asset.products?.model_name || '').toLowerCase(); // 모델명
-            const client = (asset.clients?.name || '').toLowerCase();       // 고객사명
+            const brand = (asset.products?.brand || '').toLowerCase();
+            const model = (asset.products?.model_name || '').toLowerCase();
+            const client = (asset.clients?.name || '').toLowerCase();
+            const status = (asset.status || '').toLowerCase(); 
 
             // 2. 필터 선택에 따른 검색
             if (filterType === 'serial') return sn.includes(keyword);
-            
-            // 모델 선택 시 -> 제조사(신도리코) 또는 모델명(D410) 둘 다 검색되게 함
-            if (filterType === 'model') return model.includes(keyword) || brand.includes(keyword); 
-            
+            if (filterType === 'model') return model.includes(keyword) || brand.includes(keyword);
             if (filterType === 'client') return client.includes(keyword);
             
-            // 전체(all) 선택 시 -> 모든 항목 검사
+            // 3. 전체(all) 선택 시 -> 상태(status)도 함께 검사!
             return sn.includes(keyword) || 
                    model.includes(keyword) || 
-                   brand.includes(keyword) || // ★ 제조사도 검색 조건에 포함
-                   client.includes(keyword);
+                   brand.includes(keyword) || 
+                   client.includes(keyword) ||
+                   status.includes(keyword); // <--- 여기가 핵심!
         });
         
         renderList(filtered);
