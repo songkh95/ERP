@@ -1,0 +1,657 @@
+<div id="estimate-view">
+    <!-- Tailwind CSS 스크립트 제거됨 -->
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+        
+        /* ========================================= */
+        /* [1] 기본 초기화 및 레이아웃 CSS             */
+        /* ========================================= */
+        #estimate-view {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* 유틸리티 클래스 (Tailwind 대체) */
+        .w-full { width: 100%; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .text-left { text-align: left; }
+        .font-bold { font-weight: 700; }
+        .flex { display: flex; }
+        .flex-col { display: flex; flex-direction: column; }
+        .justify-between { justify-content: space-between; }
+        .items-center { align-items: center; }
+        .items-end { align-items: flex-end; }
+        .items-start { align-items: flex-start; }
+        
+        /* 색상 유틸리티 */
+        .bg-white { background-color: white; }
+        .bg-gray { background-color: #f3f4f6; } /* 배경색 */
+        .bg-gray-light { background-color: #f9fafb; } /* 테이블 연한 배경 */
+        .text-blue { color: #1e3a8a; } /* 진한 파랑 */
+        .text-red { color: #ef4444; }
+        .text-gray { color: #4b5563; }
+        .text-white { color: white; }
+
+        /* 입력 요소 공통 스타일 */
+        #estimate-view input, #estimate-view textarea {
+            background: transparent;
+            outline: none;
+            border: none;
+            resize: none;
+            font-family: inherit;
+            /* 중요: 입력창이 셀을 꽉 채우도록 설정 */
+            width: 100%;
+            height: 100%;
+            display: block;
+            box-sizing: border-box; 
+        }
+
+        /* 숫자 입력창 스핀 버튼(화살표) 제거 - 단가(price-input)에만 적용 */
+        #estimate-view .price-input::-webkit-inner-spin-button,
+        #estimate-view .price-input::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        #estimate-view .price-input {
+            -moz-appearance: textfield; /* Firefox 용 */
+        }
+
+        /* 버튼 스타일 */
+        .btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s;
+            color: white;
+            font-weight: 500;
+        }
+        .btn-blue { background-color: #3b82f6; }
+        .btn-blue:hover { background-color: #2563eb; }
+        .btn-red { background-color: #ef4444; }
+        .btn-red:hover { background-color: #dc2626; }
+        .btn-gray { background-color: #1f2937; }
+        .btn-gray:hover { background-color: #111827; }
+
+        /* 상단 컨트롤 바 */
+        .control-bar {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin: 1rem 0;
+        }
+        .control-content {
+            width: 95%;
+            max-width: 1400px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .control-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin: 0;
+        }
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        /* ========================================= */
+        /* [2] 견적서 용지 스타일 (화면용)             */
+        /* ========================================= */
+        .sheet-container {
+            width: 95%;
+            max-width: 1400px;
+            min-height: 297mm;
+            padding: 10mm 15mm 15mm 15mm;
+            margin: 20px auto;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* 타이틀 섹션 */
+        .invoice-title {
+            font-size: 2.25rem; /* 36px */
+            font-weight: 700;
+            text-decoration: underline;
+            text-decoration-style: double;
+            text-decoration-thickness: 4px;
+            text-underline-offset: 8px;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        /* 상단 정보 섹션 (수신자/공급자) */
+        .info-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-top: 3rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* 왼쪽: 수신자 정보 */
+        .recipient-info {
+            width: 45%;
+            padding-right: 0.5rem;
+            margin-top: 2rem;
+        }
+        .date-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .client-row {
+            display: flex;
+            align-items: flex-end;
+            border-bottom: 2px solid black;
+            padding-bottom: 0.25rem;
+            width: 100%;
+        }
+        .client-input {
+            font-size: 1.5rem;
+            font-weight: 700;
+            width: 100%;
+        }
+
+        /* 오른쪽: 공급자 정보 */
+        .provider-info {
+            width: 55%;
+            padding-left: 3rem; /* pl-12 대체 */
+            font-size: 0.875rem; /* text-sm */
+        }
+        .provider-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.25rem;
+            white-space: nowrap;
+        }
+        .provider-row.address {
+            align-items: flex-start;
+            white-space: normal;
+        }
+        .label {
+            width: 4rem; /* w-16 */
+            font-weight: 700;
+            color: #4b5563;
+            text-align: left;
+            flex-shrink: 0;
+        }
+        .value {
+            flex: 1;
+            text-align: left;
+            padding-left: 0.5rem;
+            font-weight: 700;
+        }
+        .address-value {
+            font-size: 0.75rem; /* text-xs */
+            word-break: keep-all;
+            line-height: 1.25;
+        }
+
+        /* 합계 금액 표시줄 */
+        .total-bar {
+            display: flex;
+            align-items: center;
+            border-top: 2px solid black;
+            border-bottom: 2px solid black;
+            padding: 0.5rem 0;
+            margin-bottom: 1rem;
+            background-color: #f9fafb;
+        }
+        .total-text {
+            flex: 1;
+            font-size: 1.125rem;
+            font-weight: 700;
+            text-align: right;
+            padding: 0 1rem;
+            text-decoration: underline;
+            text-underline-offset: 4px;
+            color: #9ca3af; /* underline color trick not perfect in pure css without extra markup, simplifying */
+            text-decoration-color: #9ca3af;
+            color: black;
+        }
+
+        /* 테이블 스타일 */
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            table-layout: fixed;
+            font-size: 12px;
+            margin-bottom: 1.5rem;
+        }
+        th, td {
+            border: 1px solid #9ca3af;
+            /* 셀 내부 패딩을 0으로 설정하여 입력창이 꽉 차게 함 */
+            padding: 0; 
+            height: 28px;
+            vertical-align: middle;
+        }
+        th {
+            background-color: #f3f4f6;
+            font-weight: 700;
+            padding: 4px 8px; /* 헤더는 패딩 유지 */
+        }
+        
+        /* 입력창 스타일 디테일 수정 */
+        .cell-input {
+            width: 100%;
+            height: 100%;
+            padding: 4px 6px; /* 텍스트가 테두리에 붙지 않도록 안쪽 여백 설정 */
+            border: none;
+            background: transparent;
+            box-sizing: border-box;
+            font-size: 12px;
+        }
+        
+        /* 품명은 텍스트에리어 */
+        .cell-textarea {
+            width: 100%;
+            height: 100%;
+            padding: 6px;
+            border: none;
+            background: transparent;
+            box-sizing: border-box;
+            font-size: 12px;
+            vertical-align: middle;
+            overflow: hidden;
+            display: block; /* 높이 계산을 위해 블록으로 */
+        }
+
+        /* 비고란 */
+        .remarks-section {
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .remarks-box {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #9ca3af !important;
+            min-height: 96px;
+            font-size: 12px;
+        }
+
+        /* 하단 푸터 */
+        .footer {
+            margin-top: auto;
+            border-top: 2px solid #1f2937;
+            padding-top: 0.75rem;
+            text-align: left;
+        }
+        .company-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e3a8a;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.5rem;
+            line-height: 1;
+        }
+        .contact-info {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .separator {
+            color: #9ca3af;
+            margin: 0 0.5rem;
+        }
+
+        /* 자동 높이 조절 */
+        .auto-resize {
+            overflow: hidden;
+            display: block;
+            min-height: 1.5em;
+        }
+
+        /* ========================================= */
+        /* [3] 인쇄 전용 스타일 (A4 설정)              */
+        /* ========================================= */
+        @media print {
+            @page {
+                size: A4;
+                margin: 0;
+            }
+
+            body * {
+                visibility: hidden;
+            }
+
+            #estimate-view, #estimate-view * {
+                visibility: visible;
+            }
+
+            #estimate-view {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 210mm;
+                height: 297mm;
+                margin: 0;
+                padding: 0;
+                background-color: white;
+                overflow: hidden;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            #estimate-view ::placeholder {
+                color: transparent;
+            }
+
+            .sheet-container {
+                width: 100% !important;
+                max-width: 100% !important;
+                height: 100% !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                padding: 10mm !important; /* 인쇄 시 여백 */
+            }
+
+            /* 인쇄 시 간격 미세 조정 */
+            .info-section {
+                margin-top: 1.5rem !important;
+                margin-bottom: 0.5rem !important;
+            }
+            .recipient-info {
+                margin-top: 0.5rem !important;
+            }
+            .invoice-title {
+                font-size: 2rem !important;
+                margin-bottom: 1rem !important;
+            }
+            table {
+                font-size: 11px !important;
+                margin-bottom: 0.5rem !important;
+            }
+            th {
+                padding: 2px 4px !important;
+            }
+            td {
+                padding: 0 !important; /* 인쇄 시에도 td 패딩 0 유지 */
+                height: 24px !important;
+            }
+            .cell-input, .cell-textarea {
+                padding: 2px 4px !important;
+                font-size: 11px !important;
+            }
+            .footer {
+                padding-top: 0.5rem !important;
+            }
+            .remarks-section {
+                margin-top: 0.5rem !important;
+                margin-bottom: 0.5rem !important;
+            }
+
+            /* 배경색 출력 강제 */
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+
+    <!-- 상단 버튼 영역 (인쇄 시 숨김) -->
+    <div class="control-bar no-print">
+        <div class="control-content">
+            <h1 class="control-title">크린솔루션 업무 시스템</h1>
+            <div class="btn-group">
+                <button id="btnAddRow" onclick="Estimate.addRow()" class="btn btn-blue">+ 줄 추가</button>
+                <button id="btnDeleteRow" onclick="Estimate.deleteLastRow()" class="btn btn-red">- 마지막 줄 삭제</button>
+                <button onclick="window.print()" class="btn btn-gray">🖨️ 인쇄하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 견적서 양식 -->
+    <div class="sheet-container print-container">
+        
+        <!-- 상단 콘텐츠 -->
+        <div style="flex: 1;">
+            <!-- 타이틀 -->
+            <div class="invoice-title">見 積 書</div>
+
+            <!-- 수신자 및 공급자 정보 -->
+            <div class="info-section">
+                <!-- 왼쪽: 수신자 -->
+                <div class="recipient-info">
+                    <div class="date-row">
+                        <span class="font-bold text-gray" style="margin-right: 0.5rem; font-size: 0.875rem;">DATE.</span>
+                        <input type="date" id="dateInput" style="font-size: 0.875rem; font-weight: 500; cursor: pointer;">
+                    </div>
+                    <div class="client-row">
+                        <textarea id="clientName" class="auto-resize client-input" placeholder="거래처명" rows="1" oninput="Estimate.autoResize(this)"></textarea>
+                        <span style="font-size: 1.25rem; font-weight: 700; margin-left: 0.5rem; white-space: nowrap; margin-bottom: 0.25rem;">貴中</span>
+                    </div>
+                    <div style="margin-top: 1rem; color: #4b5563;">아래와 같이 見積(견적)합니다.</div>
+                </div>
+
+                <!-- 오른쪽: 공급자 -->
+                <div class="provider-info">
+                    <div class="provider-row">
+                        <span class="label">등록번호</span>
+                        <span class="value">519-33-01796</span>
+                    </div>
+                    <div class="provider-row">
+                        <span class="label">상 호</span>
+                        <span class="value" style="margin-right: 1.5rem;">크린솔루션</span>
+                        <span class="label" style="width: 3rem;">성 명</span>
+                        <span class="value">송경환</span>
+                    </div>
+                    <div class="provider-row address">
+                        <span class="label" style="margin-top: 2px;">주 소</span>
+                        <span class="value address-value">서울 영등포구 시흥대로 173길 13 신대림자이상가 101동 107-6호</span>
+                    </div>
+                    <div class="provider-row">
+                        <span class="label">업 태</span>
+                        <span class="value address-value">도소매, 서비스업</span>
+                    </div>
+                    <div class="provider-row">
+                        <span class="label">종 목</span>
+                        <span class="value address-value">사무기기및임대유지보수A/S</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 합계 금액 표시줄 -->
+            <div class="total-bar">
+                <span class="font-bold text-center" style="width: 6rem;">합 계 금 액</span>
+                <span class="font-bold" style="margin: 0 0.5rem;">金</span>
+                <span id="koreanTotal" class="total-text">영</span>
+                <span class="font-bold" style="margin: 0 0.5rem;">원 (VAT 포함)</span>
+            </div>
+
+            <!-- 메인 테이블 -->
+            <table>
+                <thead>
+                    <tr class="bg-gray-light text-center">
+                        <th style="width: 5%;">No</th>
+                        <th style="width: 45%;">품 명 (Description)</th>
+                        <th style="width: 10%;">단위</th>
+                        <th style="width: 10%;">수량</th>
+                        <th style="width: 15%;">단 가</th>
+                        <th style="width: 15%;">공급가액</th>
+                    </tr>
+                </thead>
+                <tbody id="itemTableBody">
+                    <!-- 자바스크립트 생성 -->
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="5" class="text-right bg-gray-light font-bold" style="padding: 4px 8px;">소 계</td>
+                        <td class="text-right font-bold" style="padding: 0;">
+                            <input type="text" id="subTotal" class="cell-input text-right" readonly value="0">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" class="text-right bg-gray-light font-bold" style="padding: 4px 8px;">부가세 10%</td>
+                        <td class="text-right font-bold" style="padding: 0;">
+                            <input type="text" id="vatTotal" class="cell-input text-right" readonly value="0">
+                        </td>
+                    </tr>
+                    <tr style="height: 40px;">
+                        <td colspan="5" class="text-right bg-gray-light font-bold" style="padding: 4px 8px; font-size: 1.125rem;">합 계</td>
+                        <td class="text-right font-bold text-blue" style="padding: 0;">
+                            <input type="text" id="grandTotal" class="cell-input text-right text-blue font-bold" style="font-size: 1.125rem;" readonly value="0">
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <!-- 비고 -->
+            <div class="remarks-section">
+                <div class="font-bold" style="margin-bottom: 0.25rem;">* 비 고</div>
+                <textarea class="auto-resize remarks-box" placeholder="특이사항을 입력하세요." oninput="Estimate.autoResize(this)"></textarea>
+            </div>
+        </div>
+
+        <!-- 하단 푸터 -->
+        <div class="footer">
+            <p style="margin-bottom: 0.25rem; font-weight: 500; font-size: 0.875rem;">■ 문의 사항이 있으시면 담당자에게 연락주십시요. 최선을 다하여 답변해 드리겠습니다.</p>
+            <p style="margin-bottom: 1rem; font-size: 0.75rem; color: #4b5563;">
+                ■ 홈페이지: https://fbkrclean.modoo.at/ &nbsp;&nbsp; ■ 블로그: https://blog.naver.com/xeroxclean
+            </p>
+            
+            <div class="company-name">크린솔루션</div>
+
+            <div class="contact-info">
+                <span>한국후지필름비즈니스이노베이션</span>
+                <span class="separator">|</span>
+                <span>담당자 : 송경환</span>
+                <span class="separator">|</span>
+                <span>TEL : (02)877-4300</span>
+                <span class="separator">|</span>
+                <span>HP : 010-6622-7540</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 기능 스크립트 -->
+    <script>
+        const Estimate = {
+            init: function() {
+                const dateInput = document.getElementById('dateInput');
+                if (dateInput) dateInput.valueAsDate = new Date();
+
+                for(let i=0; i<10; i++) {
+                    this.addRow(false); 
+                }
+                this.updateButtonLabels();
+            },
+
+            addRow: function(updateLabels = true) {
+                const tbody = document.getElementById('itemTableBody');
+                const rowCount = tbody.rows.length + 1;
+                const tr = document.createElement('tr');
+                tr.style.textAlign = "center";
+                tr.style.verticalAlign = "middle";
+                
+                // 패딩을 0으로 주고 input에 패딩을 줌
+                tr.innerHTML = `
+                    <td style="padding:0;">${rowCount}</td>
+                    <td style="padding:0;">
+                        <textarea class="cell-textarea text-left" placeholder="품목명 입력" rows="1" oninput="Estimate.autoResize(this)"></textarea>
+                    </td>
+                    <td style="padding:0;"><input type="text" class="cell-input text-center" placeholder="EA"></td>
+                    <td style="padding:0;"><input type="number" class="cell-input text-center qty-input" oninput="Estimate.calculate(this)"></td>
+                    <td style="padding:0;">
+                        <input type="number" class="cell-input text-right price-input" oninput="Estimate.calculate(this)">
+                    </td>
+                    <td style="padding:0; background-color: #f9fafb;">
+                        <input type="text" class="cell-input text-right supply-price" readonly value="0">
+                    </td>
+                `;
+                tbody.appendChild(tr);
+                
+                if (updateLabels) this.updateButtonLabels();
+            },
+
+            deleteLastRow: function() {
+                const tbody = document.getElementById('itemTableBody');
+                if (tbody.rows.length <= 1) {
+                    alert("최소 1개의 행은 있어야 합니다.");
+                    return;
+                }
+                tbody.deleteRow(-1);
+                this.calculateTotal();
+                this.updateButtonLabels();
+            },
+
+            updateButtonLabels: function() {
+                const tbody = document.getElementById('itemTableBody');
+                if (!tbody) return;
+                const currentCount = tbody.rows.length;
+                
+                const addBtn = document.getElementById('btnAddRow');
+                const delBtn = document.getElementById('btnDeleteRow');
+                
+                if(addBtn) addBtn.innerText = `+ ${currentCount + 1}번째 줄 추가`;
+                if(delBtn) delBtn.innerText = `- ${currentCount}번째 줄 삭제`;
+            },
+
+            autoResize: function(textarea) {
+                textarea.style.height = 'auto';
+                textarea.style.height = textarea.scrollHeight + 'px';
+            },
+
+            calculate: function(element) {
+                const row = element.closest('tr');
+                const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+                const price = parseFloat(row.querySelector('.price-input').value) || 0;
+                const supplyPrice = qty * price;
+                row.querySelector('.supply-price').value = this.formatNumber(supplyPrice);
+                this.calculateTotal();
+            },
+
+            calculateTotal: function() {
+                const tbody = document.getElementById('itemTableBody');
+                let totalSupply = 0;
+                Array.from(tbody.rows).forEach(row => {
+                    const val = row.querySelector('.supply-price').value.replace(/,/g, '');
+                    totalSupply += parseFloat(val) || 0;
+                });
+                const vat = Math.floor(totalSupply * 0.1);
+                const grand = totalSupply + vat;
+
+                document.getElementById('subTotal').value = this.formatNumber(totalSupply);
+                document.getElementById('vatTotal').value = this.formatNumber(vat);
+                document.getElementById('grandTotal').value = this.formatNumber(grand);
+                const koreanTotalElement = document.getElementById('koreanTotal');
+                if(koreanTotalElement) koreanTotalElement.innerText = this.numberToKorean(grand);
+            },
+
+            formatNumber: function(num) {
+                return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            },
+
+            numberToKorean: function(number) {
+                if (number === 0) return "영";
+                return this.formatNumber(number); 
+            }
+        };
+
+        Estimate.init();
+        window.Estimate = Estimate;
+    </script>
+</div>

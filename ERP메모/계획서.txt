@@ -1,0 +1,25 @@
+/clean-solution-erp
+│
+├── index.html            # 껍데기 (헤더, 사이드바, <main id="app">)
+├── main.css              # 공통 스타일 (레이아웃, 폰트)
+├── main.js               # 라우터 (페이지 전환 담당)
+│
+└── /src
+    ├── /common           # 공통 도구함
+    │   ├── db.js         # Supabase 연결
+    │   ├── utils.js      # 날짜 변환 등 헬퍼 함수
+    │   └── ui.js         # 공통 UI (모달 등)
+    │
+    └── /features         # ★ 기능별 모듈
+        ├── /dashboard
+        │   ├── dashboard.js  # 대시보드 화면+로직
+        │   └── style.css
+        ├── /clients
+        │   ├── clients.js    # 고객 관리 화면+로직
+        │   └── style.css
+        ├── /assets-mgr
+        │   ├── assets-mgr.js # 자산 관리 화면+로직
+        │   └── style.css
+        └── /service
+            ├── service.js    # AS 관리 화면+로직
+            └── style.css

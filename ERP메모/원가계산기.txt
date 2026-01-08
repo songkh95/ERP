@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>복합기 렌탈 견적 원가계산</title>
+    <!-- html2pdf.js: PDF 생성용 라이브러리 (html2canvas + jsPDF 통합) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 10px; /* 모바일에서 여백 줄임 */
+            color: #333;
+        }
+        .container {
+            max-width: 100%; /* 모바일에서 꽉 차게 */
+            margin: 0 auto;
+            background-color: white;
+            padding: 15px; /* 내부 패딩 줄임 */
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow-x: hidden; /* 컨테이너 자체 스크롤 방지 */
+            position: relative;
+        }
+        h1 {
+            text-align: center;
+            font-size: 20px; /* 제목 크기 조정 */
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+
+        h2 {
+            font-size: 16px;
+            border-left: 5px solid #3498db;
+            padding-left: 8px;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            color: #2980b9;
+            display: flex;
+            align-items: center;
+        }
+        /* 정보 아이콘 스타일 */
+        .info-icon {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 18px;
+            height: 18px;
+            margin-left: 6px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 50%;
+            font-size: 11px;
+            font-weight: bold;
+            font-style: italic;
+            cursor: pointer;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+        }
+        .info-icon:hover {
+            background-color: #2980b9;
+        }
+        
+        /* 테이블 래퍼: 가로 스크롤 가능하게 */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch; /* 부드러운 스크롤 */
+            margin-bottom: 15px;
+        }
+
+        table {
+            width: 100%;
+            min-width: 600px; /* 테이블 최소 너비 설정 (깨짐 방지) */
+            border-collapse: collapse;
+            font-size: 12px; /* 폰트 크기 조정 */
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 6px 4px; /* 셀 패딩 줄임 */
+            text-align: center;
+        }
+        th {
+            background-color: #eee;
+            font-weight: bold;
+            color: #555;
+            white-space: nowrap; /* 제목 줄바꿈 방지 */
+        }
+        input[type="text"] {
+            width: 95%; /* 입력창 너비 최대로 */
+            padding: 4px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            text-align: right;
+            font-family: inherit;
+            font-size: 12px;
+        }
+        input[type="number"] {
+            width: 70%;
+            padding: 4px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            text-align: center;
+            font-family: inherit;
+            font-weight: bold;
+            color: #2980b9;
+            font-size: 12px;
+        }
+        input:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        .readonly {
+            background-color: #f9f9f9;
+            color: #555;
+            border: 1px solid #eee;
+            font-weight: bold;
+            pointer-events: none;
+        }
+        .section-header {
+            background-color: #444;
+            color: white;
+        }
+        .sub-header {
+            background-color: #f0f0f0;
+        }
+        .result-row {
+            background-color: #e8f6f3;
+            font-weight: bold;
+        }
+        .highlight-row {
+            background-color: #fffde7;
+        }
+        .profit-positive {
+            color: blue;
+        }
+        .profit-negative {
+            color: red;
+        }
+        .info-text {
+            font-size: 11px;
+            color: #888;
+            margin-top: 5px;
+            text-align: right;
+            margin-bottom: 5px;
+        }
+
+        /* 저장 버튼 스타일 (PDF) */
+        .save-btn-container {
+            text-align: center;
+            margin-top: 30px;
+            margin-bottom: 20px;
+        }
+        .save-btn {
+            background-color: #e74c3c; /* PDF 색상(붉은색) */
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: background-color 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .save-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .save-btn:hover {
+            background-color: #c0392b;
+        }
+        .save-btn span {
+            margin-left: 8px;
+        }
+
+        /* 모달 팝업 스타일 */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 1000; 
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.5); 
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto; /* 상단 여백 줄임 */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 85%; /* 모달 너비 조정 */
+            max-width: 500px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        .close-btn {
+            color: #aaa;
+            float: right;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            position: absolute;
+            right: 15px;
+            top: 10px;
+        }
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #3498db;
+        }
+        .modal-body {
+            font-size: 13px;
+            line-height: 1.5;
+            color: #444;
+        }
+
+        /* 미디어 쿼리: 모바일 가로 모드 및 작은 화면 최적화 */
+        @media screen and (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            h1 { font-size: 18px; }
+            h2 { font-size: 15px; margin-top: 20px; }
+            table { font-size: 11px; }
+            th, td { padding: 4px 2px; }
+            input[type="text"], input[type="number"] { font-size: 11px; padding: 3px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="calculator-content">
+    <h1>복합기 렌탈 원가 계산서</h1>
+
+    <!-- 1. 임대조건 및 예상 출력량 -->
+    <h2>1. 임대조건 및 예상 출력량 <span class="info-icon" onclick="openModal(1)" data-html2canvas-ignore="true">i</span></h2>
+    <div class="table-responsive">
+        <table>
+            <colgroup>
+                <col style="width: 20%">
+                <col style="width: 20%">
+                <col style="width: 15%">
+                <col style="width: 20%">
+                <col style="width: 25%">
+            </colgroup>
+            <tr>
+                <th>기종명</th>
+                <th>기계원가</th>
+                <th>임대기간 (개월)</th>
+                <th>기계 감가상각 (월)</th>
+                <th>연 금리 (%)</th>
+            </tr>
+            <tr>
+                <td><input type="text" id="modelName" value="D3375CFPS"></td>
+                <td><input type="text" inputmode="numeric" id="machineCost" value="2850000" oninput="handleInput(this)"></td>
+                <td><input type="text" inputmode="numeric" id="term" value="36" oninput="handleInput(this)"></td>
+                <td><input type="text" id="monthlyDepreciation" class="readonly" readonly></td>
+                <td><input type="text" inputmode="decimal" id="interestRate" value="0" oninput="handleInput(this)"></td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="table-responsive">
+        <table>
+             <colgroup>
+                <col style="width: 15%">
+                <col style="width: 15%">
+                <col style="width: 20%">
+                <col style="width: 25%">
+                <col style="width: 25%">
+            </colgroup>
+            <!-- 기본 임대 조건 -->
+            <tr>
+                <th rowspan="2" class="section-header">임대계약</th>
+                <th class="sub-header">구분</th>
+                <th class="sub-header">기본요금 (월)</th>
+                <th class="sub-header">예상 출력량 (월)</th>
+                <th class="sub-header">총 출력량 (계약기간)</th>
+            </tr>
+            <tr>
+                <td>금액 설정</td>
+                <td><input type="text" inputmode="numeric" id="rentalFee" value="100000" oninput="handleInput(this)"></td>
+                <td>흑백: <input type="text" inputmode="numeric" id="monthlyBW" value="1000" style="width: 50px;" oninput="handleInput(this)"></td>
+                <td><input type="text" id="totalBW" class="readonly" readonly></td>
+            </tr>
+            <tr>
+                <th rowspan="2" class="section-header">기본제공</th>
+                <td>흑백매수</td>
+                <td><input type="text" inputmode="numeric" id="basicBW" value="1000" oninput="handleInput(this)"></td>
+                <td>칼라: <input type="text" inputmode="numeric" id="monthlyColor" value="100" style="width: 50px;" oninput="handleInput(this)"></td>
+                <td><input type="text" id="totalColor" class="readonly" readonly></td>
+            </tr>
+            <tr>
+                <td>칼라매수</td>
+                <td><input type="text" inputmode="numeric" id="basicColor" value="100" oninput="handleInput(this)"></td>
+                <td rowspan="2" style="vertical-align: middle; background-color: #fafafa; font-weight:bold;">총 합계 (흑+칼)</td>
+                <td rowspan="2" style="vertical-align: middle;">
+                    <input type="text" id="totalOutputAll" class="readonly" style="font-weight:bold;" readonly>
+                </td>
+            </tr>
+            
+            <!-- 추가요금 및 임대요금 총액 섹션 -->
+            <tr>
+                <th rowspan="3" class="section-header">추가요금<br>(장당)</th>
+                <td>흑백</td>
+                <td><input type="text" inputmode="numeric" id="addFeeBW" value="10" oninput="handleInput(this)"></td>
+            </tr>
+            <tr class="highlight-row">
+                <td>칼라 (A4)</td>
+                <td><input type="text" inputmode="numeric" id="addFeeColorA4" value="100" oninput="handleInput(this)"></td>
+                <td style="font-weight:bold; color:#2980b9;">임대요금 (매월)</td>
+                <td><input type="text" id="displayMonthlyFee" class="readonly" style="font-weight:bold; color:#2980b9;" readonly></td>
+            </tr>
+            <tr class="highlight-row">
+                <td>칼라 (A3)</td>
+                <td><input type="text" inputmode="numeric" id="addFeeColorA3" value="200" oninput="handleInput(this)"></td>
+                <td style="font-weight:bold; color:#2c3e50;">임대요금 (총액)</td>
+                <td><input type="text" id="displayTotalFee" class="readonly" style="font-weight:bold; color:#2c3e50;" readonly></td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- 2. 소요비용 -->
+    <h2>2. 소요비용 (소모품) <span class="info-icon" onclick="openModal(2)" data-html2canvas-ignore="true">i</span></h2>
+    <div class="info-text">* 개수(x)를 조정하면 단가(세트 가격)가 자동으로 변경됩니다. (예: 151,000원 x 4개 = 604,000원)</div>
+    <div class="table-responsive">
+        <table>
+            <colgroup>
+                <col style="width: 12%">
+                <col style="width: 18%">
+                <col style="width: 12%">
+                <col style="width: 15%">
+                <col style="width: 10%">
+                <col style="width: 13%">
+                <col style="width: 20%">
+            </colgroup>
+            <tr>
+                <th>구분</th>
+                <th>소모품명</th>
+                <th>수명 (Life)</th>
+                <th>단가</th>
+                <th>개수(x)</th>
+                <th>교환횟수</th>
+                <th>소요금액 (총)</th>
+            </tr>
+            <!-- Row 1: Drum Common (Merged) -->
+            <tr>
+                <td rowspan="5" style="vertical-align: middle;">소모품</td>
+                <td>드럼 (K/C/M/Y)</td>
+                <td><input type="text" inputmode="numeric" id="life_drumCommon" value="143000" oninput="handleInput(this)"></td>
+                <td><input type="text" inputmode="numeric" id="cost_drumCommon" value="151000" oninput="handleInput(this)"></td>
+                <td><input type="number" id="qty_drumCommon" value="4" min="1" oninput="handleInput(this)"></td>
+                <td><input type="text" id="count_drumCommon" class="readonly" readonly></td>
+                <td><input type="text" id="total_drumCommon" class="readonly" readonly></td>
+            </tr>
+            <!-- Row 3: Toner B -->
+            <tr>
+                <td>토너 B</td>
+                <td><input type="text" inputmode="numeric" id="life_tonerB" value="26000" oninput="handleInput(this)"></td>
+                <td><input type="text" inputmode="numeric" id="cost_tonerB" value="82000" oninput="handleInput(this)"></td>
+                <td><input type="number" id="qty_tonerB" value="1" min="1" oninput="handleInput(this)"></td>
+                <td><input type="text" id="count_tonerB" class="readonly" readonly></td>
+                <td><input type="text" id="total_tonerB" class="readonly" readonly></td>
+            </tr>
+            <!-- Row 4: Toner C/M/Y -->
+            <tr>
+                <td>토너 C/M/Y</td>
+                <td><input type="text" inputmode="numeric" id="life_tonerColor" value="15000" oninput="handleInput(this)"></td>
+                <td><input type="text" inputmode="numeric" id="cost_tonerColor" value="133000" oninput="handleInput(this)"></td>
+                <td><input type="number" id="qty_tonerColor" value="3" min="1" oninput="handleInput(this)"></td>
+                <td><input type="text" id="count_tonerColor" class="readonly" readonly></td>
+                <td><input type="text" id="total_tonerColor" class="readonly" readonly></td>
+            </tr>
+            <!-- Row 5: Waste Toner -->
+            <tr>
+                <td>폐토너통</td>
+                <td><input type="text" inputmode="numeric" id="life_waste" value="46000" oninput="handleInput(this)"></td>
+                <td><input type="text" inputmode="numeric" id="cost_waste" value="38000" oninput="handleInput(this)"></td>
+                <td><input type="number" id="qty_waste" value="1" min="1" oninput="handleInput(this)"></td>
+                <td><input type="text" id="count_waste" class="readonly" readonly></td>
+                <td><input type="text" id="total_waste" class="readonly" readonly></td>
+            </tr>
+            <!-- Row 6: Fuser -->
+            <tr>
+                <td>Fuser</td>
+                <td><input type="text" inputmode="numeric" id="life_fuser" value="100000" oninput="handleInput(this)"></td>
+                <td><input type="text" inputmode="numeric" id="cost_fuser" value="250000" oninput="handleInput(this)"></td>
+                <td><input type="number" id="qty_fuser" value="1" min="1" oninput="handleInput(this)"></td>
+                <td><input type="text" id="count_fuser" class="readonly" readonly></td>
+                <td><input type="text" id="total_fuser" class="readonly" readonly></td>
+            </tr>
+            <tr class="result-row">
+                <td colspan="6">소모품 총 소요금액 합계</td>
+                <td><input type="text" id="grandTotalConsumables" class="readonly" style="text-align: center; font-size: 1.1em;" readonly></td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- 3. 임대시 이익 -->
+    <h2>3. 임대시 이익 (월) <span class="info-icon" onclick="openModal(3)" data-html2canvas-ignore="true">i</span></h2>
+    <div class="table-responsive">
+        <table>
+            <colgroup>
+                <col style="width: 10%">
+                <col style="width: 12%">
+                <col style="width: 12%">
+                <col style="width: 12%">
+                <col style="width: 12%">
+                <col style="width: 12%">
+                <col style="width: 12%">
+                <col style="width: 10%">
+                <col style="width: 12%">
+            </colgroup>
+            <tr>
+                <th>구분</th>
+                <th>기계 감가 (월)</th>
+                <th>금리비용 (월)</th>
+                <th>소모품 비용 (월)</th>
+                <th>원가 합계 (월)</th>
+                <th>임대 요금 (월)</th>
+                <th>이익 (월)</th>
+                <th>마진율 (%)</th>
+                <th>총 이익 (전체)</th>
+            </tr>
+            <tr>
+                <td>금액</td>
+                <td><input type="text" id="profit_machine" class="readonly" readonly></td>
+                <td><input type="text" id="profit_interest" class="readonly" readonly></td>
+                <td><input type="text" id="profit_consumable" class="readonly" readonly></td>
+                <td><input type="text" id="profit_cost_total" class="readonly" style="color: #d35400;" readonly></td>
+                <td><input type="text" id="profit_rental_fee" class="readonly" readonly></td>
+                <td><input type="text" id="profit_monthly" class="readonly" style="font-weight:bold;" readonly></td>
+                <td><input type="text" id="profit_margin_rate" class="readonly" style="font-weight:bold; text-align:center;" readonly></td>
+                <td><input type="text" id="profit_total" class="readonly" style="font-weight:bold;" readonly></td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- 4. 원가 회수 내역 -->
+    <h2>4. 원가 회수 내역 (BEP) <span class="info-icon" onclick="openModal(4)" data-html2canvas-ignore="true">i</span></h2>
+    <div class="table-responsive">
+        <table>
+            <tr>
+                <th>구분</th>
+                <th>기계비용만 회수 (개월)</th>
+                <th>기계 + 소모품 비용 회수 (개월)</th>
+            </tr>
+            <tr>
+                <td>손익분기점</td>
+                <td><input type="text" id="bep_machine" class="readonly" style="text-align: center;" readonly></td>
+                <td><input type="text" id="bep_total" class="readonly" style="text-align: center; background-color: #fff9c4;" readonly></td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- 5. 분석 및 참고 지표 -->
+    <h2>5. 분석 및 참고 지표 <span class="info-icon" onclick="openModal(5)" data-html2canvas-ignore="true">i</span></h2>
+    <div class="table-responsive">
+        <table>
+            <colgroup>
+                <col style="width: 25%">
+                <col style="width: 25%">
+                <col style="width: 25%">
+                <col style="width: 25%">
+            </colgroup>
+            <tr>
+                <th>장당 평균 원가 (원)</th>
+                <th>매출 대비 원가율 (%)</th>
+                <th>손익분기 누적 출력량 (매)</th>
+                <th style="background-color: #ffe0b2;">월 손익분기 한계 출력량 (Limit)</th>
+            </tr>
+            <tr>
+                <td><input type="text" id="analysis_cpp" class="readonly" style="text-align: center; font-weight:bold; color:#d35400;" readonly></td>
+                <td><input type="text" id="analysis_cost_ratio" class="readonly" style="text-align: center;" readonly></td>
+                <td><input type="text" id="analysis_bep_volume" class="readonly" style="text-align: center; color:#2980b9;" readonly></td>
+                <td><input type="text" id="analysis_monthly_bep_volume" class="readonly" style="text-align: center; font-weight:bold; background-color: #fff3e0; color:#d35400;" readonly></td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- PDF 저장 버튼 (저장 시 문서에는 포함되지 않음) -->
+    <div class="save-btn-container" data-html2canvas-ignore="true">
+        <button class="save-btn" onclick="saveAsPDF()">
+            📄 견적서 PDF로 저장
+        </button>
+    </div>
+
+</div>
+
+<!-- 설명 모달 (Modal) -->
+<div id="infoModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <div id="modalHeader" class="modal-title"></div>
+        <div id="modalBody" class="modal-body"></div>
+    </div>
+</div>
+
+<script>
+    // PDF 저장 함수
+    function saveAsPDF() {
+        const element = document.getElementById('calculator-content');
+        const modelName = document.getElementById('modelName').value || '견적서';
+        
+        const date = new Date();
+        const dateStr = date.getFullYear() + 
+                      String(date.getMonth() + 1).padStart(2, '0') + 
+                      String(date.getDate()).padStart(2, '0');
+        
+        const fileName = `견적서_${modelName}_${dateStr}.pdf`;
+
+        // 1. 저장 전 처리: input을 텍스트로 변환 (잘림 방지)
+        const inputs = element.querySelectorAll('input');
+        const originalValues = [];
+        
+        inputs.forEach((input, index) => {
+            originalValues[index] = input.value;
+            // span 태그로 교체
+            const span = document.createElement('span');
+            span.textContent = input.value;
+            span.style.display = 'inline-block';
+            span.style.width = input.style.width || '100%';
+            span.style.textAlign = input.style.textAlign || 'left';
+            span.style.fontWeight = input.style.fontWeight || 'normal';
+            span.style.color = input.style.color || 'inherit';
+            span.style.fontSize = input.style.fontSize || 'inherit';
+            span.className = 'pdf-text-replace'; // 나중에 식별용
+            
+            input.style.display = 'none';
+            input.parentNode.insertBefore(span, input);
+        });
+
+        // 2. html2pdf 설정 및 실행
+        const opt = {
+            margin:       10, // 여백 (mm)
+            filename:     fileName,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] } // 페이지 분할 설정
+        };
+
+        html2pdf().set(opt).from(element).save().then(() => {
+            // 3. 저장 후 복구: 텍스트를 다시 input으로
+            const replacements = element.querySelectorAll('.pdf-text-replace');
+            replacements.forEach(span => span.remove());
+            
+            inputs.forEach(input => {
+                input.style.display = '';
+            });
+        }).catch(err => {
+            alert("PDF 저장 중 오류가 발생했습니다: " + err);
+            // 에러 발생 시에도 복구
+            const replacements = element.querySelectorAll('.pdf-text-replace');
+            replacements.forEach(span => span.remove());
+            inputs.forEach(input => {
+                input.style.display = '';
+            });
+        });
+    }
+
+    function formatNumber(num) {
+        if (num === undefined || num === null || isNaN(num)) return "0";
+        return num.toLocaleString('ko-KR', { maximumFractionDigits: 0 });
+    }
+
+    function formatDecimal(num, digits) {
+        if (isNaN(num)) return "0";
+        return num.toLocaleString('ko-KR', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+    }
+
+    function getVal(id) {
+        const el = document.getElementById(id);
+        if (!el) return 0;
+        return parseFloat(el.value.replace(/,/g, '')) || 0;
+    }
+    
+    function getQty(id) {
+        const el = document.getElementById(id);
+        if (!el) return 1;
+        let val = parseFloat(el.value);
+        return (val > 0) ? val : 1;
+    }
+
+    function setVal(id, val, isMoney = true) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (isMoney) {
+            el.value = formatNumber(val);
+        } else {
+            el.value = val; 
+        }
+    }
+
+    function handleInput(el) {
+        // 개수 변경 시 단가(세트가격) 자동 업데이트
+        if (el.id.startsWith('qty_')) {
+            const costId = el.id.replace('qty_', 'cost_');
+            const costEl = document.getElementById(costId);
+            if (costEl) {
+                const qty = getQty(el.id);
+                const baseCost = parseFloat(costEl.dataset.baseCost) || 0;
+                const newSetPrice = baseCost * qty;
+                setVal(costId, newSetPrice);
+            }
+        } 
+        // 단가(세트가격) 직접 입력 시 1개당 단가 재계산
+        else if (el.id.startsWith('cost_')) {
+            const qtyId = el.id.replace('cost_', 'qty_');
+            const qtyEl = document.getElementById(qtyId);
+            if (qtyEl) { 
+                const qty = getQty(qtyId);
+                const currentSetPrice = getVal(el.id);
+                if (qty > 0) {
+                    el.dataset.baseCost = currentSetPrice / qty;
+                }
+            }
+        }
+        
+        formatInput(el);
+        calculate();
+    }
+
+    function formatInput(el) {
+        let val = el.value.replace(/[^0-9.]/g, ''); 
+        if (!val) {
+            el.value = '';
+            return;
+        }
+
+        let parts = val.split('.');
+        let intPart = parts[0];
+        
+        intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        let res = intPart + (parts.length > 1 ? '.' + parts[1] : '');
+        
+        if (el.value !== res) {
+            el.value = res;
+        }
+    }
+
+    function calculate() {
+        const machineCost = getVal('machineCost');
+        const term = getVal('term');
+        const interestRate = getVal('interestRate');
+        const rentalFee = getVal('rentalFee');
+        const monthlyBW = getVal('monthlyBW');
+        const monthlyColor = getVal('monthlyColor');
+
+        // 1. 임대조건 계산
+        const monthlyDepreciation = term > 0 ? machineCost / term : 0;
+        setVal('monthlyDepreciation', monthlyDepreciation);
+
+        const totalBW = monthlyBW * term;
+        const totalColor = monthlyColor * term;
+        const totalOutputAll = totalBW + totalColor;
+
+        setVal('totalBW', totalBW);
+        setVal('totalColor', totalColor);
+        setVal('totalOutputAll', totalOutputAll);
+
+        setVal('displayMonthlyFee', rentalFee);
+        const totalRentalFee = rentalFee * term;
+        setVal('displayTotalFee', totalRentalFee);
+
+
+        // 2. 소모품 계산
+        function calcConsumableWithQty(lifeId, costId, qtyId, countId, totalId, totalSingleUnitsNeeded) {
+            const life = getVal(lifeId);
+            const setPrice = getVal(costId); 
+            const qty = getQty(qtyId);
+            
+            let exchangeCountSet = 0;
+            if (life > 0) {
+                exchangeCountSet = totalSingleUnitsNeeded / qty;
+            }
+            
+            const totalCost = setPrice * exchangeCountSet;
+
+            document.getElementById(countId).value = formatDecimal(exchangeCountSet, 2);
+            setVal(totalId, totalCost);
+            
+            return totalCost;
+        }
+        
+        function calcNormal(lifeId, costId, qtyId, countId, totalId, basisOutput) {
+            const life = getVal(lifeId);
+            let totalUnits = 0;
+            if(life > 0) totalUnits = basisOutput / life;
+            return calcConsumableWithQty(lifeId, costId, qtyId, countId, totalId, totalUnits);
+        }
+
+        let sumConsumables = 0;
+
+        // 드럼 (K/C/M/Y)
+        const lifeDrum = getVal('life_drumCommon');
+        let totalDrumUnits = 0;
+        if (lifeDrum > 0) {
+            totalDrumUnits = (totalOutputAll + (totalColor * 3)) / lifeDrum;
+        }
+        sumConsumables += calcConsumableWithQty('life_drumCommon', 'cost_drumCommon', 'qty_drumCommon', 'count_drumCommon', 'total_drumCommon', totalDrumUnits);
+
+        // 토너 B
+        sumConsumables += calcNormal('life_tonerB', 'cost_tonerB', 'qty_tonerB', 'count_tonerB', 'total_tonerB', totalOutputAll);
+
+        // 토너 C/M/Y
+        const lifeTonerColor = getVal('life_tonerColor');
+        let totalTonerColorUnits = 0;
+        if(lifeTonerColor > 0) {
+            totalTonerColorUnits = (totalColor / lifeTonerColor) * 3;
+        }
+        sumConsumables += calcConsumableWithQty('life_tonerColor', 'cost_tonerColor', 'qty_tonerColor', 'count_tonerColor', 'total_tonerColor', totalTonerColorUnits);
+
+        // 폐토너통, Fuser
+        sumConsumables += calcNormal('life_waste', 'cost_waste', 'qty_waste', 'count_waste', 'total_waste', totalOutputAll);
+        sumConsumables += calcNormal('life_fuser', 'cost_fuser', 'qty_fuser', 'count_fuser', 'total_fuser', totalOutputAll);
+
+        setVal('grandTotalConsumables', sumConsumables);
+
+
+        // 3. 이익 분석
+        const monthlyInterest = (machineCost * (interestRate / 100)) / 12;
+        const monthlyConsumableCost = term > 0 ? sumConsumables / term : 0;
+        const totalMonthlyCost = monthlyDepreciation + monthlyInterest + monthlyConsumableCost;
+        const monthlyProfit = rentalFee - totalMonthlyCost;
+        const totalProfit = monthlyProfit * term;
+        const marginRate = rentalFee > 0 ? (monthlyProfit / rentalFee) * 100 : 0;
+
+        setVal('profit_machine', monthlyDepreciation);
+        setVal('profit_interest', monthlyInterest);
+        setVal('profit_consumable', monthlyConsumableCost);
+        setVal('profit_cost_total', totalMonthlyCost);
+        setVal('profit_rental_fee', rentalFee);
+        setVal('profit_monthly', monthlyProfit);
+        setVal('profit_total', totalProfit);
+        
+        document.getElementById('profit_margin_rate').value = formatDecimal(marginRate, 1) + " %";
+        const marginEl = document.getElementById('profit_margin_rate');
+        marginEl.style.color = marginRate >= 0 ? "blue" : "red";
+
+        const profitEl = document.getElementById('profit_monthly');
+        profitEl.style.color = monthlyProfit >= 0 ? "blue" : "red";
+
+        // 4. BEP
+        const bepMachine = rentalFee > 0 ? machineCost / rentalFee : 0;
+        const bepTotal = rentalFee > 0 ? (machineCost + sumConsumables) / rentalFee : 0;
+
+        document.getElementById('bep_machine').value = formatDecimal(bepMachine, 1) + " 개월";
+        document.getElementById('bep_total').value = formatDecimal(bepTotal, 1) + " 개월";
+
+        // 5. 분석 및 참고 지표 (추가됨)
+        const monthlyTotalOutput = monthlyBW + monthlyColor;
+        const avgCostPerPage = monthlyTotalOutput > 0 ? totalMonthlyCost / monthlyTotalOutput : 0;
+        const costRatio = rentalFee > 0 ? (totalMonthlyCost / rentalFee) * 100 : 0;
+        const bepVolume = bepTotal * monthlyTotalOutput;
+
+        document.getElementById('analysis_cpp').value = formatNumber(Math.round(avgCostPerPage)) + " 원";
+        document.getElementById('analysis_cost_ratio').value = formatDecimal(costRatio, 1) + " %";
+        document.getElementById('analysis_bep_volume').value = formatNumber(Math.round(bepVolume)) + " 매";
+
+        // [New] Monthly BEP Volume Limit Calculation
+        // Logic: RentalFee - FixedCost = Max Variable Cost
+        // Max Variable Cost >= (CPP_BW * VolBW) + (CPP_Color * VolColor)
+        // Assume ratio is fixed based on input
+        const fixedMonthlyCost = monthlyDepreciation + monthlyInterest;
+        const maxVariableCost = rentalFee - fixedMonthlyCost;
+        
+        // 1. Drum CPP
+        const drumSetPrice = getVal('cost_drumCommon');
+        const drumQty = getQty('qty_drumCommon');
+        const drumLife = getVal('life_drumCommon');
+        const drumUnitPrice = drumQty > 0 ? drumSetPrice / drumQty : 0;
+        const cppDrumBW = drumLife > 0 ? drumUnitPrice / drumLife : 0;
+        const cppDrumColorTotal = drumLife > 0 ? (drumUnitPrice * 4) / drumLife : 0;
+
+        // 2. Toner B CPP
+        const tonerBSetPrice = getVal('cost_tonerB');
+        const tonerBQty = getQty('qty_tonerB');
+        const tonerBLife = getVal('life_tonerB');
+        const tonerBUnitPrice = tonerBQty > 0 ? tonerBSetPrice / tonerBQty : 0;
+        const cppTonerB = tonerBLife > 0 ? tonerBUnitPrice / tonerBLife : 0;
+
+        // 3. Toner C/M/Y CPP
+        const tonerColorSetPrice = getVal('cost_tonerColor');
+        const tonerColorQty = getQty('qty_tonerColor'); 
+        const tonerColorLife = getVal('life_tonerColor');
+        const tonerColorUnitPrice = tonerColorQty > 0 ? tonerColorSetPrice / tonerColorQty : 0;
+        const cppTonerColor = tonerColorLife > 0 ? (tonerColorUnitPrice * 3) / tonerColorLife : 0;
+
+        // 4. Waste CPP
+        const wasteSetPrice = getVal('cost_waste');
+        const wasteQty = getQty('qty_waste');
+        const wasteLife = getVal('life_waste');
+        const wasteUnitPrice = wasteQty > 0 ? wasteSetPrice / wasteQty : 0;
+        const cppWaste = wasteLife > 0 ? wasteUnitPrice / wasteLife : 0;
+
+        // 5. Fuser CPP
+        const fuserSetPrice = getVal('cost_fuser');
+        const fuserQty = getQty('qty_fuser');
+        const fuserLife = getVal('life_fuser');
+        const fuserUnitPrice = fuserQty > 0 ? fuserSetPrice / fuserQty : 0;
+        const cppFuser = fuserLife > 0 ? fuserUnitPrice / fuserLife : 0;
+
+        const cppFullBW = cppDrumBW + cppTonerB + cppWaste + cppFuser;
+        const cppFullColor = cppDrumColorTotal + cppTonerB + cppTonerColor + cppWaste + cppFuser; 
+        
+        let monthlyBepDisplay = "";
+        
+        if (maxVariableCost < 0) {
+            monthlyBepDisplay = "적자 (고정비 초과)";
+        } else {
+            if (monthlyTotalOutput > 0) {
+                const ratioBW = monthlyBW / monthlyTotalOutput;
+                const ratioColor = monthlyColor / monthlyTotalOutput;
+                const weightedAvgCPP = (cppFullBW * ratioBW) + (cppFullColor * ratioColor);
+                
+                if (weightedAvgCPP > 0) {
+                    const maxVol = maxVariableCost / weightedAvgCPP;
+                    const maxVolBW = maxVol * ratioBW;
+                    const maxVolColor = maxVol * ratioColor;
+                    monthlyBepDisplay = `총 ${formatNumber(Math.round(maxVol))}매 (흑:${formatNumber(Math.round(maxVolBW))} / 칼:${formatNumber(Math.round(maxVolColor))})`;
+                } else {
+                    monthlyBepDisplay = "무제한 (원가 0원)";
+                }
+            } else {
+                monthlyBepDisplay = "출력 비율 입력 필요";
+            }
+        }
+        document.getElementById('analysis_monthly_bep_volume').value = monthlyBepDisplay;
+    }
+
+    // Modal Logic
+    const explanations = {
+        1: {
+            title: "1. 임대조건 및 예상 출력량 상세 설명",
+            content: `
+                <p><strong>1) 기계 감가상각 (월)</strong><br>
+                입력하신 기계 원가를 임대 기간으로 나눈 비용입니다.<br>
+                <code>기계원가 ÷ 임대기간(개월)</code></p>
+                <p><strong>2) 총 출력량</strong><br>
+                계약 기간 전체 동안 발생할 예상 출력 매수입니다.<br>
+                <code>월 예상 출력량 × 임대기간(개월)</code></p>
+                <p><strong>3) 연 금리</strong><br>
+                기계 구매 자금에 대한 이자 비용을 계산할 때 사용됩니다. (현재 기본값은 0%입니다)</p>
+            `
+        },
+        2: {
+            title: "2. 소요비용 (소모품) 계산 로직",
+            content: `
+                <p><strong>1) 총 소요금액 공식</strong><br>
+                <code>단가(세트) × 교환횟수</code></p>
+                <p><strong>2) 교환횟수 계산</strong><br>
+                필요한 총 낱개 수량을 입력하신 <strong>개수(x)</strong>로 나누어 계산합니다.</p>
+                <p><strong>3) 드럼 (K/C/M/Y) 로직</strong><br>
+                4색 공용 드럼의 총 사용량을 계산합니다.<br>
+                <code>(흑백 총 출력량 + (칼라 총 출력량 × 3)) ÷ 수명</code>으로 필요한 낱개 총량을 구한 뒤, 입력된 개수(기본 4개)로 나누어 교환 횟수를 산출합니다.</p>
+                <p><strong>4) 토너 C/M/Y 로직</strong><br>
+                칼라 출력 시 C, M, Y 3가지 토너가 동시에 소모되므로,<br>
+                <code>(칼라 총 출력량 ÷ 수명) × 3</code>으로 필요한 낱개 총량을 구한 뒤, 입력된 개수(기본 3개)로 나누어 교환 횟수를 산출합니다.</p>
+            `
+        },
+        3: {
+            title: "3. 임대시 이익 (월) 분석",
+            content: `
+                <p><strong>1) 원가 합계 (월)</strong><br>
+                매월 고정적으로 발생하는 비용의 합계입니다.<br>
+                <code>월 감가상각비 + 월 금리비용 + (총 소모품 비용 ÷ 임대기간)</code></p>
+                <p><strong>2) 이익 (월)</strong><br>
+                회사에 남는 월 순수익입니다.<br>
+                <code>월 임대 요금 - 월 원가 합계</code></p>
+                <p><strong>3) 마진율 (%)</strong><br>
+                매출(임대료) 대비 이익의 비율입니다.<br>
+                <code>(월 이익 ÷ 월 임대 요금) × 100</code></p>
+            `
+        },
+        4: {
+            title: "4. 원가 회수 내역 (손익분기점)",
+            content: `
+                <p><strong>1) 기계비용만 회수</strong><br>
+                임대료 수익으로 기계값(원금)만 갚는 데 걸리는 시간입니다.<br>
+                <code>기계원가 ÷ 월 임대 요금</code></p>
+                <p><strong>2) 기계 + 소모품 비용 회수</strong><br>
+                기계값과 계약 기간 동안 발생하는 모든 소모품 비용을 합친 총 지출을 회수하는 데 걸리는 시간입니다.<br>
+                <code>(기계원가 + 소모품 총 소요금액) ÷ 월 임대 요금</code></p>
+            `
+        },
+        5: {
+            title: "5. 분석 및 참고 지표 상세",
+            content: `
+                <p><strong>1) 장당 평균 원가 (CPP)</strong><br>
+                출력 1장당 실제로 발생하는 평균 비용입니다.<br>
+                <code>월 원가 합계 ÷ 월 총 출력량</code></p>
+                <p><strong>2) 매출 대비 원가율</strong><br>
+                임대료 매출 중 원가가 차지하는 비중입니다.<br>
+                <code>(월 원가 합계 ÷ 월 임대료) × 100</code></p>
+                <p><strong>3) 손익분기 누적 출력량</strong><br>
+                투자금(기계값+소모품비)을 모두 회수하는 시점에 도달하는 총 출력 매수입니다.<br>
+                <code>손익분기(기계+소모품) 개월 수 × 월 총 출력량</code></p>
+                <p><strong>4) 월 손익분기 한계 출력량 (Limit)</strong><br>
+                <span style="color:red; font-weight:bold;">※ 예상 출력량이 아닙니다.</span><br>
+                입력하신 <strong>흑백 대 칼라 사용 비율</strong>을 기준으로, 월 임대료 내에서 비용을 커버할 수 있는 <strong>최대 출력 매수</strong>입니다.<br>
+                이 수치보다 더 많이 출력하면 적자가 발생합니다.</p>
+            `
+        }
+    };
+
+    function openModal(id) {
+        document.getElementById('modalHeader').innerHTML = explanations[id].title;
+        document.getElementById('modalBody').innerHTML = explanations[id].content;
+        document.getElementById('infoModal').style.display = "block";
+    }
+
+    function closeModal() {
+        document.getElementById('infoModal').style.display = "none";
+    }
+    
+    // 설치 가이드 모달 관련 함수 - 제거됨
+    /* function openInstallModal() {
+        document.getElementById('installModal').style.display = "block";
+    }
+
+    function closeInstallModal() {
+        document.getElementById('installModal').style.display = "none";
+    }
+    */
+
+    // 화면 밖 클릭 시 모달 닫기
+    window.onclick = function(event) {
+        const infoModal = document.getElementById('infoModal');
+        // const installModal = document.getElementById('installModal');
+        if (event.target == infoModal) {
+            infoModal.style.display = "none";
+        }
+        /*
+        if (event.target == installModal) {
+            installModal.style.display = "none";
+        }
+        */
+    }
+
+    // 초기화 및 이벤트 바인딩
+    window.onload = function() {
+        const keys = ['drumCommon', 'tonerB', 'tonerColor', 'waste', 'fuser'];
+        keys.forEach(key => {
+            const costEl = document.getElementById('cost_' + key);
+            const qtyEl = document.getElementById('qty_' + key);
+            if (costEl && qtyEl) {
+                const unitPrice = getVal('cost_' + key); 
+                costEl.dataset.baseCost = unitPrice; 
+                const qty = getQty('qty_' + key); 
+                const setPrice = unitPrice * qty; 
+                setVal('cost_' + key, setPrice); 
+            }
+        });
+
+        const inputs = document.querySelectorAll('input[type="text"][inputmode="numeric"], input[type="text"][inputmode="decimal"]');
+        inputs.forEach(input => {
+            formatInput(input);
+        });
+        calculate();
+    };
+</script>
+
+</body>
+</html>
