@@ -2,15 +2,16 @@
 import * as Dashboard from './src/features/dashboard/dashboard.js';
 import * as Clients from './src/features/clients/clients.js';
 import * as AssetsMgr from './src/features/assets-mgr/assets-mgr.js'; 
-// import * as Service from './src/features/service/service.js';
+import * as Service from './src/features/service/service.js';
+
 
 // 라우트 설정
 const routes = {
     'dashboard': Dashboard,
     'clients': Clients,
-    // 2. 주석 해제 및 연결 (route 설정)
+     // 연결 (route 설정)
     'assets-mgr': AssetsMgr, 
-    'service': { render: () => '<h1>🚧 준비 중입니다</h1>', init: () => {} }
+    'service': Service,
 };
 
 async function navigate(target, titleName) {

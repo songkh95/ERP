@@ -1,0 +1,68 @@
+<section class="service-page">
+    <h1>🛠️ A/S 및 점검 접수</h1>
+
+    <div class="input-panel">
+        <h3>📝 오늘 점검 내용 등록</h3>
+        
+        <div class="form-group row">
+            <div class="col">
+                <label>방문 날짜</label>
+                <input type="date" id="input-date">
+            </div>
+            <div class="col">
+                <label>거래처 선택</label>
+                <select id="select-client">
+                    <option value="">-- 거래처를 선택하세요 --</option>
+                    </select>
+            </div>
+            <div class="col">
+                <label>점검 모델(기기)</label>
+                <select id="select-asset">
+                    <option value="">-- 거래처를 먼저 선택하세요 --</option>
+                    </select>
+            </div>
+        </div>
+
+        <div class="form-group row">
+            <div class="col" style="flex: 2;">
+                <label>방문 및 점검 내용</label>
+                <input type="text" id="input-visit" placeholder="예: 정기점검, 용지걸림 수리...">
+            </div>
+            <div class="col" style="flex: 1;">
+                <label>소모품 배송</label>
+                <input type="text" id="input-delivery" placeholder="예: 블랙 토너 1개">
+            </div>
+        </div>
+
+        <div class="form-group row">
+            <div class="col">
+                <label>현장 소모품 여유분</label>
+                <input type="text" id="input-spare" placeholder="예: 토너 1개 남음">
+            </div>
+            <div class="col">
+                <label>비고 (메모)</label>
+                <input type="text" id="input-note" placeholder="특이사항">
+            </div>
+        </div>
+
+        <div class="btn-right">
+            <button id="btn-cancel-edit" class="btn-cancel-edit hidden">입력 초기화 (수정 취소)</button>
+            <button id="btn-save-log" class="btn-save">등록하기</button>
+        </div>
+    </div>
+
+ <div class="list-container">
+        <h3>📋 거래처별 점검 기록</h3>
+        
+        <div class="list-header">
+            <div class="col-40">거래처명</div>
+            <div class="col-20">총 점검 횟수</div>
+            <div class="col-30">최근 방문일</div>
+            <div class="col-10" style="text-align:center;">보기</div>
+        </div>
+
+        <ul id="service-list-ul" class="service-list">
+            <li style="padding: 20px; text-align: center;">데이터를 불러오는 중...</li>
+        </ul>
+    </div>
+</section>

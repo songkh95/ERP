@@ -1,0 +1,172 @@
+.service-page h1 { margin-bottom: 20px; color: #333; }
+
+.input-panel {
+    background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 30px;
+}
+
+.form-group.row {
+    display: flex; gap: 15px; margin-bottom: 15px;
+}
+.col {
+    display: flex; flex-direction: column; flex: 1;
+}
+.col label {
+    font-size: 0.85rem; font-weight: bold; margin-bottom: 5px; color: #555;
+}
+input, select {
+    padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95rem;
+}
+input:focus, select:focus { border-color: #007bff; outline: none; }
+
+.btn-right { text-align: right; margin-top: 10px; }
+.btn-save {
+    background: #28a745; color: white; border: none; padding: 10px 20px; 
+    border-radius: 4px; font-weight: bold; cursor: pointer;
+}
+.btn-save:hover { background: #218838; }
+
+/* 리스트 스타일 (미리 준비) */
+.data-list li {
+    background: white; border-bottom: 1px solid #eee; padding: 15px;
+}
+
+/* --- [추가됨] 리스트 & 그리드 스타일 --- */
+
+/* 리스트 헤더 */
+.list-header {
+    display: flex;
+    background: #e9ecef;
+    padding: 10px 15px;
+    border-radius: 4px 4px 0 0;
+    font-weight: bold;
+    color: #495057;
+    font-size: 0.9rem;
+}
+
+/* 리스트 아이템 (한 줄) */
+.service-list li {
+    background: white;
+    border-bottom: 1px solid #eee;
+    padding: 0; /* 패딩 제거 (내부 div에서 처리) */
+    display: block; /* 세로 배치 */
+}
+
+/* 요약 줄 (항상 보이는 곳) */
+.log-summary {
+    display: flex;
+    padding: 15px;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+.log-summary:hover { background-color: #f8f9fa; }
+
+/* 컬럼 너비 비율 (총합 100이 되도록) */
+.col-5 { flex: 5%; }
+.col-10 { flex: 10%; }
+.col-15 { flex: 15%; }
+.col-20 { flex: 20%; }
+
+/* 정렬 가능한 헤더 */
+.sortable { cursor: pointer; color: #007bff; display: flex; align-items: center; gap: 3px; }
+.sortable:hover { text-decoration: underline; }
+
+/* ★ 말줄임표(...) 처리 핵심 코드 */
+.text-truncate {
+    white-space: nowrap;      /* 줄바꿈 금지 */
+    overflow: hidden;         /* 넘치는 부분 숨김 */
+    text-overflow: ellipsis;  /* ... 으로 표시 */
+    padding-right: 10px;
+    color: #555;
+    font-size: 0.9rem;
+}
+
+/* 상세 내용 (펼쳐지는 부분) */
+.log-details {
+    display: none; /* 기본 숨김 */
+    background-color: #fafafa;
+    border-top: 1px dashed #ddd;
+    padding: 20px;
+}
+.log-details.show { display: block; animation: slideDown 0.3s; }
+
+/* 상세 정보 그리드 */
+.detail-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+}
+.detail-box label { display: block; font-size: 0.8rem; color: #888; margin-bottom: 5px; }
+.detail-box div { font-weight: 500; color: #333; line-height: 1.4; }
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 컬럼 너비 재조정 */
+.col-10 { flex: 10%; } .col-20 { flex: 20%; } .col-30 { flex: 30%; } .col-40 { flex: 40%; }
+
+/* 1. 그룹 헤더 (거래처 줄) */
+.group-header {
+    display: flex;
+    padding: 15px;
+    align-items: center;
+    cursor: pointer;
+    background: white;
+    border-bottom: 1px solid #eee;
+    transition: background 0.2s;
+}
+.group-header:hover { background-color: #f1f3f5; }
+.group-header strong { font-size: 1.1rem; color: #333; }
+
+/* 2. 그룹 바디 (펼쳐지는 부분 - 점검 목록) */
+.group-body {
+    display: none; /* 기본 숨김 */
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-bottom: 1px solid #ddd;
+}
+.group-body.show { display: block; }
+
+/* 3. 내부 테이블 스타일 (점검 기록) */
+.inner-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    font-size: 0.9rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.inner-table th {
+    background: #e9ecef; color: #495057; padding: 8px; text-align: left; font-weight: bold;
+    border-bottom: 2px solid #dee2e6;
+}
+.inner-table td {
+    padding: 10px 8px; border-bottom: 1px solid #eee; vertical-align: top; color: #555;
+}
+.inner-table tr:last-child td { border-bottom: none; }
+
+/* 뱃지 */
+.badge-count {
+    background: #007bff; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.8rem; margin-left: 5px;
+}
+
+/* 테이블 내부 관리 버튼 */
+.btn-mini {
+    padding: 3px 8px;
+    font-size: 0.8rem;
+    border-radius: 3px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    background: white;
+}
+.btn-mini.edit { color: #28a745; border-color: #28a745; }
+.btn-mini.edit:hover { background: #28a745; color: white; }
+
+.btn-mini.del { color: #dc3545; border-color: #dc3545; margin-left: 3px; }
+.btn-mini.del:hover { background: #dc3545; color: white; }
+
+/* 수정 모드일 때 나타날 '수정 취소' 버튼 스타일 */
+.btn-cancel-edit {
+    background: #6c757d; color: white; border: none; padding: 10px 20px; 
+    border-radius: 4px; font-weight: bold; cursor: pointer; margin-right: 5px;
+}
+.hidden { display: none !important; }
