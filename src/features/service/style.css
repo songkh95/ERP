@@ -170,3 +170,36 @@ input:focus, select:focus { border-color: #007bff; outline: none; }
     border-radius: 4px; font-weight: bold; cursor: pointer; margin-right: 5px;
 }
 .hidden { display: none !important; }
+
+/* 소모품 체크박스 그룹 */
+.delivery-check-group {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 8px 12px;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.check-row {
+    display: flex;
+    align-items: center;
+    gap: 15px; /* 항목 간 간격 */
+}
+
+/* 분류 제목 (토너/드럼) 스타일 */
+.chk-label-title {
+    font-weight: bold;
+    color: #333;
+    width: 70px; /* 제목 너비 고정 */
+    cursor: pointer;
+    display: flex; align-items: center; gap: 5px;
+}
+
+/* 개별 라벨 스타일 */
+.check-row label {
+    cursor: pointer;
+    margin-bottom: 0 !important; /* 기존 마진 제거 */
+    display: flex; align-items: center; gap: 3px;
+}

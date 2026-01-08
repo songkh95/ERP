@@ -13,13 +13,15 @@ export async function init() {
     const selClient = document.getElementById('select-client');
     const selAsset = document.getElementById('select-asset');
     const inpVisit = document.getElementById('input-visit');
-    const inpDelivery = document.getElementById('input-delivery');
+    const chkAllList = document.querySelectorAll('.chk-all');
     const inpSpare = document.getElementById('input-spare');
     const inpNote = document.getElementById('input-note');
     
     const btnSave = document.getElementById('btn-save-log');
     const btnCancelEdit = document.getElementById('btn-cancel-edit'); // 추가됨
     const ul = document.getElementById('service-list-ul');
+
+    
 
     // 상태 변수
     let editingLogId = null; // 수정 중인 로그 ID (null이면 신규 등록)
@@ -28,6 +30,17 @@ export async function init() {
     resetForm();
     loadClients();
     loadServiceLogs();
+
+    // ✅ [추가] 토너/드럼 제목 클릭 시 전체 선택/해제 로직
+    chkAllList.forEach(chkAll => {
+        chkAll.addEventListener('change', (e) => {
+            const targetName = e.target.dataset.target; // 'toner' 또는 'drum'
+            const isChecked = e.target.checked;
+            const childCheckboxes = document.querySelectorAll(`input[name="deli-${targetName}"]`);
+            childCheckboxes.forEach(child => child.checked = isChecked);
+        });
+    });
+
 
     // -----------------------------------------------------------
     // 1. 거래처 & 기기 연동
@@ -71,35 +84,47 @@ export async function init() {
     // -----------------------------------------------------------
     // 2. 저장 (신규 등록 OR 수정)
     // -----------------------------------------------------------
+// ✅ [교체] 저장 버튼 로직
     btnSave.addEventListener('click', async () => {
         if (!selClient.value || !selAsset.value) return alert('거래처와 기기 선택 필수');
         if (!inpDate.value) return alert('날짜 필수');
 
+        // (1) 체크박스 값 -> 글자로 변환
+        const getCheckedValues = (name) => {
+            const checked = document.querySelectorAll(`input[name="${name}"]:checked`);
+            return Array.from(checked).map(c => c.value);
+        };
+        const tonerVals = getCheckedValues('deli-toner');
+        const drumVals = getCheckedValues('deli-drum');
+
+        let deliveryStr = '';
+        if (tonerVals.length > 0) deliveryStr += `토너(${tonerVals.join(',')}) `;
+        if (drumVals.length > 0) deliveryStr += `드럼(${drumVals.join(',')})`;
+        
+        // (2) Payload 생성
         const payload = {
             visit_date: inpDate.value,
             client_id: selClient.value,
             asset_id: selAsset.value,
             visit_detail: inpVisit.value,
-            delivery_detail: inpDelivery.value,
+            delivery_detail: deliveryStr.trim(), // 변환된 글자 저장
             spare_parts: inpSpare.value,
             note: inpNote.value
         };
 
+        // (3) DB 전송 (기존과 동일)
         let result;
-
         if (editingLogId) {
-            // [수정 모드] Update
             result = await supabase.from('service_logs').update(payload).eq('id', editingLogId);
         } else {
-            // [신규 모드] Insert
             result = await supabase.from('service_logs').insert(payload);
         }
 
         if (result.error) alert('실패: ' + result.error.message);
         else {
             alert(editingLogId ? '✅ 수정되었습니다.' : '✅ 등록되었습니다.');
-            resetForm(); // 폼 초기화
-            loadServiceLogs(); // 목록 새로고침
+            resetForm(); 
+            loadServiceLogs(); 
         }
     });
 
@@ -107,18 +132,22 @@ export async function init() {
     btnCancelEdit.addEventListener('click', resetForm);
 
     // 폼 리셋 함수
-    function resetForm() {
+ function resetForm() {
         editingLogId = null;
         inpDate.value = new Date().toISOString().split('T')[0];
         selClient.value = '';
         selAsset.innerHTML = '<option value="">-- 거래처를 먼저 선택하세요 --</option>';
-        inpVisit.value = ''; inpDelivery.value = ''; inpSpare.value = ''; inpNote.value = '';
+        inpVisit.value = ''; 
+        // inpDelivery.value = ''; <-- 삭제됨
+        inpSpare.value = ''; inpNote.value = '';
+        
+        // ✅ [추가] 모든 체크박스 해제
+        document.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = false);
         
         btnSave.textContent = '등록하기';
-        btnSave.style.background = '#28a745'; // 초록색
-        btnCancelEdit.classList.add('hidden'); // 취소 버튼 숨김
+        btnSave.style.background = '#28a745';
+        btnCancelEdit.classList.add('hidden');
     }
-
     // -----------------------------------------------------------
     // 3. 데이터 로드 및 렌더링
     // -----------------------------------------------------------
@@ -126,7 +155,7 @@ export async function init() {
         const { data, error } = await supabase
             .from('service_logs')
             .select(`*, clients(name), assets(id, serial_number, products(model_name))`)
-            .order('visit_date', { ascending: false });
+            .order('created_at', { ascending: false }); // false: 나중에 등록한게 위로 (3 -> 2 -> 1)
 
         if (error) return console.error(error);
         renderGroupedLogs(data);
@@ -254,4 +283,6 @@ export async function init() {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     });
+
+    
 }

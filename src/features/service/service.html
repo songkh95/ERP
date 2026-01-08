@@ -28,9 +28,34 @@
                 <label>방문 및 점검 내용</label>
                 <input type="text" id="input-visit" placeholder="예: 정기점검, 용지걸림 수리...">
             </div>
-            <div class="col" style="flex: 1;">
-                <label>소모품 배송</label>
-                <input type="text" id="input-delivery" placeholder="예: 블랙 토너 1개">
+            <div class="col" style="flex: 2;">
+                <label>소모품 배송 (분류 클릭 시 전체선택)</label>
+                
+                <div class="delivery-check-group" id="delivery-checkboxes">
+                    
+                    <div class="check-row">
+                        <label class="chk-label-title">
+                            <input type="checkbox" class="chk-all" data-target="toner"> 
+                            ⬛ 토너
+                        </label>
+                        <label><input type="checkbox" name="deli-toner" value="K"> K</label>
+                        <label><input type="checkbox" name="deli-toner" value="C"> C</label>
+                        <label><input type="checkbox" name="deli-toner" value="M"> M</label>
+                        <label><input type="checkbox" name="deli-toner" value="Y"> Y</label>
+                    </div>
+
+                    <div class="check-row">
+                        <label class="chk-label-title">
+                            <input type="checkbox" class="chk-all" data-target="drum"> 
+                            💿 드럼
+                        </label>
+                        <label><input type="checkbox" name="deli-drum" value="K"> K</label>
+                        <label><input type="checkbox" name="deli-drum" value="C"> C</label>
+                        <label><input type="checkbox" name="deli-drum" value="M"> M</label>
+                        <label><input type="checkbox" name="deli-drum" value="Y"> Y</label>
+                    </div>
+
+                </div>
             </div>
         </div>
 
