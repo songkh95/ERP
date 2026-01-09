@@ -122,7 +122,7 @@ input:focus, select:focus { border-color: #007bff; outline: none; }
 .group-body {
     display: none; /* 기본 숨김 */
     background-color: #f8f9fa;
-    padding: 15px;
+    padding-top: 15px;
     border-bottom: 1px solid #ddd;
 }
 .group-body.show { display: block; }

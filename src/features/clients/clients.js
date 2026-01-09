@@ -102,7 +102,7 @@ export async function init() {
                     
                     <div class="detail-grid">
                         <div class="detail-item">
-                            <label>고객사명</label>
+                            <label>거래처명</label>
                             <span>${client.name}</span>
                         </div>
                         <div class="detail-item">
@@ -131,7 +131,7 @@ export async function init() {
                             ✏️ 정보 수정 및 기기 관리
                         </button>
                         <button class="btn-delete" data-id="${client.id}" data-name="${client.name}" style="margin-left:5px;">
-                            🗑️ 고객 삭제
+                            🗑️ 거래처 삭제
                         </button>
                     </div>
                 </div>
@@ -202,7 +202,7 @@ export async function init() {
         
         if (isEditMode) {
             assetSection.classList.remove('hidden');
-            btnSave.textContent = '고객 정보 수정';
+            btnSave.textContent = '거래처 정보 수정';
             loadClientAssets(editingId);
             loadStockAssets();
             loadModels();
@@ -215,7 +215,7 @@ export async function init() {
 
     const closeForm = () => {
         formPanel.classList.add('hidden');
-        btnToggle.textContent = '➕ 신규 고객 등록';
+        btnToggle.textContent = '➕ 신규 거래처 등록';
         resetForm();
     };
 
@@ -223,7 +223,7 @@ export async function init() {
         editingId = null;
         inputName.value = '';
         inputContact.value = '';
-        formTitle.textContent = '새 고객 정보 입력';
+        formTitle.textContent = '새 거래처 정보 입력';
         miniAssetUl.innerHTML = '';
         inputNewSerial.value = '';
     }
