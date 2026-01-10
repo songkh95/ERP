@@ -39,3 +39,24 @@
 
 여튼 위 내용으로 고객 등록 내용을 더 만들어야됨 
 
+------------------------
+
+그룹별로 묶어서(기본정보 / 계약정보 / 청구정보)
+
+ADD COLUMN name text --  거래처명
+ADD COLUMN contact_person text -- 담당자
+ADD COLUMN client_code text,       -- 고객번호
+ADD COLUMN client_seq text,        -- 고객순번
+ADD COLUMN contract_type text,     -- 계약형태 (판매/임대)
+ADD COLUMN department text,        -- 수취부서 (설치장소)
+ADD COLUMN recipient text,         -- 수취인명
+ADD COLUMN contract_date date,     -- 계약일자
+ADD COLUMN cancel_date date,       -- 해약일자
+ADD COLUMN start_date date,        -- 계약개시일
+ADD COLUMN end_date date,          -- 계약만기일
+ADD COLUMN product_type text,      -- 상품구분
+ADD COLUMN contract_model text,    -- 기종 (계약상 모델)
+ADD COLUMN contract_serial text,   -- 기계번호 (계약상 시리얼)
+ADD COLUMN billing_method text,    -- 청구방법
+ADD COLUMN billing_day text;       -- 청구일
+
