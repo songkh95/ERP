@@ -1,74 +1,99 @@
 // main.js
+
+// 1. 각 페이지 모듈 import
 import * as Dashboard from './src/features/dashboard/dashboard.js';
 import * as Clients from './src/features/clients/clients.js';
+// (주의) 폴더명이나 파일명이 다를 수 있으니 본인 경로에 맞게 확인해주세요.
 import * as AssetsMgr from './src/features/assets-mgr/assets-mgr.js'; 
 import * as Service from './src/features/service/service.js';
 
-
-// 라우트 설정
-const routes = {
-    'dashboard': Dashboard,
-    'clients': Clients,
-     // 연결 (route 설정)
-    'assets-mgr': AssetsMgr, 
-    'service': Service,
+// 2. 라우트 설정 (제목 정보 추가)
+const routeInfo = {
+    'dashboard': { module: Dashboard, title: '대시보드' },
+    'clients':   { module: Clients,   title: '거래처 관리' },
+    'assets-mgr':{ module: AssetsMgr, title: '자산 및 기기 관리' },
+    'service':   { module: Service,   title: 'A/S 접수 현황' }
 };
 
-async function navigate(target, titleName) {
+// 3. 페이지 이동 함수
+async function navigate(routeKey) {
     const app = document.getElementById('app');
-    const pageTitle = document.getElementById('page-title');
-    const module = routes[target];
+    const titleEl = document.getElementById('page-title'); // 타이틀 요소 찾기
 
-    if (!module) return;
+    const info = routeInfo[routeKey]; // 정보 가져오기
 
-    // 제목 변경
-    pageTitle.textContent = titleName || 'CS ERP';
+    if (!info) {
+        console.error(`Route not found: ${routeKey}`);
+        return;
+    }
 
-    // [수정됨] render 함수 앞에 await를 붙여야 합니다!
-    // HTML 파일을 읽어올 때까지 기다려야 하기 때문입니다.
-    app.innerHTML = await module.render(); 
+    // (1) 헤더 제목 변경 ★
+    if (titleEl) {
+        titleEl.textContent = info.title;
+    }
 
-    // 기능 실행
-    if (module.init) {
-        await module.init();
+    // (2) 모듈 로드 및 렌더링
+    const module = info.module;
+    try {
+        app.innerHTML = await module.render();
+        if (module.init) await module.init();
+    } catch (err) {
+        console.error(err);
+        app.innerHTML = `<p>에러 발생: ${err.message}</p>`;
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
-    const layout = document.querySelector('.layout'); // 전체를 감싸는 div
-
-    if (btnToggleSidebar) {
-        btnToggleSidebar.addEventListener('click', () => {
-            // 'collapsed' 클래스가 있으면 빼고, 없으면 넣음
-            layout.classList.toggle('collapsed');
-        });
-    }
-    // 메뉴 클릭 이벤트 위임
-    const menuContainer = document.querySelector('.menu');
-
-    menuContainer.addEventListener('click', (e) => {
-        // 클릭한 요소가 버튼이거나 버튼 내부의 아이콘일 수 있으므로 .closest() 사용
-        const button = e.target.closest('button');
+// 4. 메뉴 활성화(파란색 하이라이트) 처리 함수
+function updateActiveMenu(routeKey) {
+    // 모든 메뉴 링크에서 active 제거
+    const links = document.querySelectorAll('.nav-link');
+    links.forEach(link => {
+        link.classList.remove('active');
         
-        if (button && button.dataset.target) {
-            const target = button.dataset.target;
-            const title = button.dataset.title; // HTML에 적어둔 제목 가져오기
-
-            // 1. 모든 버튼에서 active 클래스 제거 (색깔 초기화)
-            document.querySelectorAll('.menu button').forEach(btn => btn.classList.remove('active'));
-            
-            // 2. 클릭한 버튼에 active 클래스 추가 (색깔 칠하기)
-            button.classList.add('active');
-
-            // 3. 페이지 이동
-            navigate(target, title);
+        // 현재 라우트와 일치하면 active 추가
+        if (link.dataset.route === routeKey) {
+            link.classList.add('active');
         }
     });
+}
 
-    // 초기 실행 (대시보드)
-    const initButton = document.querySelector('button[data-target="dashboard"]');
-    if (initButton) {
-        initButton.click(); // 강제로 클릭 효과를 줘서 초기화
+// 5. 이벤트 리스너 설정 (DOM 로드 후 실행)
+document.addEventListener('DOMContentLoaded', () => {
+    
+    // (1) 메뉴 클릭 이벤트 (이벤트 위임)
+    // 에러 해결 핵심: .menu가 아니라 .nav-menu를 찾아야 합니다!
+    const navMenu = document.querySelector('.nav-menu');
+    const btnToggle = document.getElementById('btn-toggle-sidebar');
+    const appContainer = document.querySelector('.app-container');
+    
+    if (btnToggle && appContainer) {
+        btnToggle.addEventListener('click', () => {
+            // .app-container에 'collapsed' 클래스를 넣었다 뺐다 함
+            appContainer.classList.toggle('collapsed');
+        });
     }
+    
+    if (navMenu) {
+        navMenu.addEventListener('click', (e) => {
+            // 클릭된 요소가 링크(a 태그)인지 확인
+            const link = e.target.closest('.nav-link');
+            
+            if (link) {
+                e.preventDefault(); // 링크 이동 방지
+                
+                const routeKey = link.dataset.route;
+                
+                // 페이지 이동 및 메뉴 활성화
+                navigate(routeKey);
+                updateActiveMenu(routeKey);
+            }
+        });
+    } else {
+        console.error("Error: '.nav-menu' element not found in index.html");
+    }
+
+    // (2) 초기 로드 시 대시보드 화면 띄우기
+    const initialRoute = 'dashboard'; 
+    navigate(initialRoute);
+    updateActiveMenu(initialRoute);
 });

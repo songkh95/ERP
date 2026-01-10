@@ -1,14 +1,25 @@
 import { supabase } from '../../common/db.js';
-import { loadCSS, loadHTML } from '../../common/utils.js';
+import { loadCSS } from '../../common/utils.js';
 
-export async function render() {
-    return await loadHTML('./src/features/service/service.html');
-}
+// ============================================================
+//  1. [Render] HTML 구조 (리스트 중심 + 모달 팝업)
+// ============================================================
+export { render } from './service.view.js';
 
+// ============================================================
+//  2. [Init] 기능 로직
+// ============================================================
 export async function init() {
     loadCSS('./src/features/service/style.css');
 
-    // DOM 요소
+    // --- DOM 요소 선택 ---
+    // 모달 관련
+    const modal = document.getElementById('service-modal');
+    const btnOpenModal = document.getElementById('btn-open-modal');
+    const btnCloseModal = document.getElementById('btn-close-modal');
+    const formTitle = document.getElementById('form-title');
+
+    // 폼 내부 요소 (기존 ID 유지)
     const inpDate = document.getElementById('input-date');
     const selClient = document.getElementById('select-client');
     const selAsset = document.getElementById('select-asset');
@@ -16,64 +27,72 @@ export async function init() {
     const chkAllList = document.querySelectorAll('.chk-all');
     const inpSpare = document.getElementById('input-spare');
     const inpNote = document.getElementById('input-note');
-    
     const btnSave = document.getElementById('btn-save-log');
-    const btnCancelEdit = document.getElementById('btn-cancel-edit'); // 추가됨
     const ul = document.getElementById('service-list-ul');
 
-    
-
     // 상태 변수
-    let editingLogId = null; // 수정 중인 로그 ID (null이면 신규 등록)
+    let editingLogId = null; 
 
-    // 초기 설정
+    // 초기 실행
     resetForm();
     loadClients();
     loadServiceLogs();
 
-    // ✅ [추가] 토너/드럼 제목 클릭 시 전체 선택/해제 로직
+    // --- 모달 제어 함수 ---
+    function openModal(isEdit) {
+        modal.style.display = 'flex';
+        if (isEdit) {
+            formTitle.innerHTML = "<i class='bx bx-edit'></i> A/S 접수 수정";
+            btnSave.textContent = "수정 완료";
+        } else {
+            formTitle.innerHTML = "<i class='bx bx-plus-circle'></i> 신규 A/S 접수";
+            btnSave.textContent = "등록하기";
+            resetForm(); // 신규일 때 폼 비우기
+        }
+    }
+
+    function closeModal() {
+        modal.style.display = 'none';
+        resetForm();
+    }
+
+    // 버튼 이벤트
+    if(btnOpenModal) btnOpenModal.addEventListener('click', () => openModal(false));
+    if(btnCloseModal) btnCloseModal.addEventListener('click', closeModal);
+
+    // --- 체크박스 전체 선택 로직 ---
     chkAllList.forEach(chkAll => {
         chkAll.addEventListener('change', (e) => {
-            const targetName = e.target.dataset.target; // 'toner' 또는 'drum'
+            const targetName = e.target.dataset.target; // 'toner' or 'drum'
             const isChecked = e.target.checked;
             const childCheckboxes = document.querySelectorAll(`input[name="deli-${targetName}"]`);
             childCheckboxes.forEach(child => child.checked = isChecked);
         });
     });
 
-
-    // -----------------------------------------------------------
-    // 1. 거래처 & 기기 연동
-    // -----------------------------------------------------------
+    // --- 데이터 로드: 거래처 & 기기 ---
     async function loadClients() {
         const { data } = await supabase.from('clients').select('id, name').order('name');
         selClient.innerHTML = '<option value="">-- 거래처를 선택하세요 --</option>' +
             (data || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
     }
 
-    // ★ [중요] 기기 로딩 로직 함수로 분리 (재사용 위해)
     async function loadAssetsForClient(clientId, selectedAssetId = null) {
         if (!clientId) {
             selAsset.innerHTML = '<option value="">-- 거래처를 먼저 선택하세요 --</option>';
             return;
         }
         
-        // 로딩 중 표시 안 함 (수정 시 깜빡임 방지)
         const { data } = await supabase
             .from('assets')
             .select('id, serial_number, products(model_name)')
             .eq('client_id', clientId);
-            // .eq('status', '사용중'); // 필요시 주석 해제 (수정 시 과거 기기일 수도 있어서 일단 뺌)
 
         if (!data || data.length === 0) {
             selAsset.innerHTML = '<option value="">등록된 기기가 없습니다.</option>';
         } else {
             selAsset.innerHTML = data.map(a => `<option value="${a.id}">[${a.products?.model_name}] ${a.serial_number}</option>`).join('');
-            
-            // 만약 선택해야 할 기기 ID가 있다면 선택해줌 (수정 모드일 때)
-            if (selectedAssetId) {
-                selAsset.value = selectedAssetId;
-            }
+            if (selectedAssetId) selAsset.value = selectedAssetId;
         }
     }
 
@@ -81,15 +100,12 @@ export async function init() {
         loadAssetsForClient(selClient.value);
     });
 
-    // -----------------------------------------------------------
-    // 2. 저장 (신규 등록 OR 수정)
-    // -----------------------------------------------------------
-// ✅ [교체] 저장 버튼 로직
+    // --- 저장 (등록/수정) 로직 ---
     btnSave.addEventListener('click', async () => {
-        if (!selClient.value || !selAsset.value) return alert('거래처와 기기 선택 필수');
-        if (!inpDate.value) return alert('날짜 필수');
+        if (!selClient.value || !selAsset.value) return alert('거래처와 기기 선택은 필수입니다.');
+        if (!inpDate.value) return alert('접수일자는 필수입니다.');
 
-        // (1) 체크박스 값 -> 글자로 변환
+        // 체크박스 값 수집
         const getCheckedValues = (name) => {
             const checked = document.querySelectorAll(`input[name="${name}"]:checked`);
             return Array.from(checked).map(c => c.value);
@@ -101,18 +117,16 @@ export async function init() {
         if (tonerVals.length > 0) deliveryStr += `토너(${tonerVals.join(',')}) `;
         if (drumVals.length > 0) deliveryStr += `드럼(${drumVals.join(',')})`;
         
-        // (2) Payload 생성
         const payload = {
             visit_date: inpDate.value,
             client_id: selClient.value,
             asset_id: selAsset.value,
             visit_detail: inpVisit.value,
-            delivery_detail: deliveryStr.trim(), // 변환된 글자 저장
+            delivery_detail: deliveryStr.trim(),
             spare_parts: inpSpare.value,
             note: inpNote.value
         };
 
-        // (3) DB 전송 (기존과 동일)
         let result;
         if (editingLogId) {
             result = await supabase.from('service_logs').update(payload).eq('id', editingLogId);
@@ -123,39 +137,30 @@ export async function init() {
         if (result.error) alert('실패: ' + result.error.message);
         else {
             alert(editingLogId ? '✅ 수정되었습니다.' : '✅ 등록되었습니다.');
-            resetForm(); 
+            closeModal(); // 저장 후 닫기
             loadServiceLogs(); 
         }
     });
 
-    // 수정 취소 버튼
-    btnCancelEdit.addEventListener('click', resetForm);
-
-    // 폼 리셋 함수
- function resetForm() {
+    function resetForm() {
         editingLogId = null;
         inpDate.value = new Date().toISOString().split('T')[0];
         selClient.value = '';
         selAsset.innerHTML = '<option value="">-- 거래처를 먼저 선택하세요 --</option>';
         inpVisit.value = ''; 
-        // inpDelivery.value = ''; <-- 삭제됨
-        inpSpare.value = ''; inpNote.value = '';
+        inpSpare.value = ''; 
+        inpNote.value = '';
         
-        // ✅ [추가] 모든 체크박스 해제
+        // 체크박스 초기화
         document.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = false);
-        
-        btnSave.textContent = '등록하기';
-        btnSave.style.background = '#28a745';
-        btnCancelEdit.classList.add('hidden');
     }
-    // -----------------------------------------------------------
-    // 3. 데이터 로드 및 렌더링
-    // -----------------------------------------------------------
+
+    // --- 리스트 로드 및 렌더링 ---
     async function loadServiceLogs() {
         const { data, error } = await supabase
             .from('service_logs')
             .select(`*, clients(name), assets(id, serial_number, products(model_name))`)
-            .order('created_at', { ascending: false }); // false: 나중에 등록한게 위로 (3 -> 2 -> 1)
+            .order('created_at', { ascending: false });
 
         if (error) return console.error(error);
         renderGroupedLogs(data);
@@ -163,11 +168,10 @@ export async function init() {
 
     function renderGroupedLogs(logs) {
         if (!logs || logs.length === 0) {
-            ul.innerHTML = '<li style="padding:20px; text-align:center; color:#999;">기록이 없습니다.</li>';
+            ul.innerHTML = '<li style="padding:40px; text-align:center; color:#999;">등록된 접수 내역이 없습니다.</li>';
             return;
         }
 
-        // 그룹화
         const groups = {};
         logs.forEach(log => {
             const clientId = log.client_id;
@@ -180,7 +184,6 @@ export async function init() {
             const logCount = group.logs.length;
             const latestDate = group.logs[0].visit_date;
 
-            // ★ 내부 테이블 행 생성 (수정/삭제 버튼 추가됨)
             const rowsHtml = group.logs.map(log => `
                 <tr>
                     <td style="width:12%; font-weight:bold;">${log.visit_date}</td>
@@ -190,7 +193,7 @@ export async function init() {
                     <td style="width:10%; color:#007bff;">${log.spare_parts || '-'}</td>
                     <td style="width:10%; color:#888;">${log.note || ''}</td>
                     <td style="width:15%; text-align:center;">
-                        <button class="btn-mini edit" 
+                        <button class="btn-edit" 
                             data-id="${log.id}" 
                             data-date="${log.visit_date}"
                             data-client="${log.client_id}"
@@ -199,31 +202,28 @@ export async function init() {
                             data-deli="${log.delivery_detail || ''}"
                             data-spare="${log.spare_parts || ''}"
                             data-note="${log.note || ''}"
+                            style="border:1px solid #d1d5db; background:white; padding:4px 8px; border-radius:4px; cursor:pointer;"
                         >수정</button>
-                        <button class="btn-mini del" data-id="${log.id}">삭제</button>
+                        <button class="btn-del" data-id="${log.id}"
+                            style="border:1px solid #fee2e2; background:white; color:red; padding:4px 8px; border-radius:4px; cursor:pointer;"
+                        >삭제</button>
                     </td>
                 </tr>
             `).join('');
 
             return `
             <li>
-                <div class="group-header">
-                    <div class="col-40"><strong>${group.name}</strong> <span class="badge-count">${logCount}건</span></div>
-                    <div class="col-20" style="color:#666;">총 ${logCount}회 방문</div>
-                    <div class="col-30" style="color:#666;">최근: ${latestDate}</div>
-                    <div class="col-10" style="text-align:center;"><i class='bx bx-chevron-down'></i></div>
+                <div class="group-header" style="cursor:pointer; display:flex; justify-content:space-between; padding:15px; background:#f8f9fa; border-bottom:1px solid #eee;">
+                    <div style="flex:2;"><strong>${group.name}</strong> <span class="badge blue" style="margin-left:5px;">${logCount}건</span></div>
+                    <div style="flex:1; color:#666;">최근: ${latestDate}</div>
+                    <div style="width:30px; text-align:center;"><i class='bx bx-chevron-down'></i></div>
                 </div>
-                <div class="group-body">
-                    <table class="inner-table">
+                <div class="group-body" style="display:none; padding:15px;">
+                    <table class="inner-table" style="width:100%; border-collapse:collapse; font-size:0.9rem;">
                         <thead>
-                            <tr>
-                                <th>방문일자</th>
-                                <th>모델명</th>
-                                <th>방문/점검 내용</th>
-                                <th>배송 내용</th>
-                                <th>여유분</th>
-                                <th>비고</th>
-                                <th>관리</th> </tr>
+                            <tr style="background:#f1f5f9;">
+                                <th style="padding:10px;">방문일자</th><th>모델명</th><th>방문/점검 내용</th><th>배송 내용</th><th>여유분</th><th>비고</th><th>관리</th>
+                            </tr>
                         </thead>
                         <tbody>${rowsHtml}</tbody>
                     </table>
@@ -232,21 +232,24 @@ export async function init() {
         }).join('');
     }
 
-    // -----------------------------------------------------------
-    // 4. 이벤트 위임 (펼치기, 수정, 삭제)
-    // -----------------------------------------------------------
+    // --- 이벤트 위임 (펼치기, 수정, 삭제) ---
     ul.addEventListener('click', async (e) => {
         // (1) 펼치기/접기
         const header = e.target.closest('.group-header');
         if (header) {
             const body = header.nextElementSibling;
-            const icon = header.querySelector('i');
-            body.classList.toggle('show');
-            icon.style.transform = body.classList.contains('show') ? 'rotate(180deg)' : 'rotate(0deg)';
+            // jQuery 없이 토글 구현
+            if(body.style.display === 'none') {
+                body.style.display = 'block';
+                header.querySelector('i').style.transform = 'rotate(180deg)';
+            } else {
+                body.style.display = 'none';
+                header.querySelector('i').style.transform = 'rotate(0deg)';
+            }
         }
 
         // (2) 삭제 버튼
-        const btnDel = e.target.closest('.del');
+        const btnDel = e.target.closest('.btn-del');
         if (btnDel) {
             if (confirm('정말 삭제하시겠습니까?')) {
                 await supabase.from('service_logs').delete().eq('id', btnDel.dataset.id);
@@ -255,34 +258,23 @@ export async function init() {
         }
 
         // (3) 수정 버튼
-        const btnEdit = e.target.closest('.edit');
+        const btnEdit = e.target.closest('.btn-edit');
         if (btnEdit) {
-            // 데이터 가져오기
             const d = btnEdit.dataset;
-            
-            // 상태 변경
             editingLogId = d.id;
             
             // 폼 채우기
             inpDate.value = d.date;
             selClient.value = d.client;
             inpVisit.value = d.visit;
-            inpDelivery.value = d.deli;
             inpSpare.value = d.spare;
             inpNote.value = d.note;
 
-            // ★ 비동기 처리: 고객 선택 후 -> 기기 목록 불러오고 -> 기기 선택까지
+            // 기기 목록 로드 및 선택 대기
             await loadAssetsForClient(d.client, d.asset);
 
-            // UI 변경
-            btnSave.textContent = '수정 완료';
-            btnSave.style.background = '#007bff'; // 파란색
-            btnCancelEdit.classList.remove('hidden'); // 취소버튼 보이기
-            
-            // 맨 위로 스크롤
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            // ★ 팝업 열기 (수정 모드)
+            openModal(true);
         }
     });
-
-    
 }

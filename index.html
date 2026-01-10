@@ -6,53 +6,39 @@
     <title>Clean Solution ERP</title>
     <link rel="stylesheet" href="main.css">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-    <script type="module" src="main.js"></script>
 </head>
 <body>
-    <div class="layout">
+    <div class="app-container">
         <nav class="sidebar">
-            <div class="brand">
-                <i class='bx bxs-printer'></i> 크린솔루션 ERP
+            <div class="logo-area">
+                <i class='bx bxs-printer'></i> VANTUS ERP
             </div>
-            <ul class="menu">
-                <li>
-                    <button data-target="dashboard" data-title="대시보드">
-                        <i class='bx bxs-dashboard'></i> 홈 (대시보드)
-                    </button>
-                </li>
-                <li>
-                    <button data-target="clients" data-title="고객사 관리">
-                        <i class='bx bxs-user-detail'></i> 고객 관리
-                    </button>
-                </li>
-                <li>
-                    <button data-target="assets-mgr" data-title="자산(복합기) 관리">
-                        <i class='bx bxs-cube'></i> 자산 관리
-                    </button>
-                </li>
-                <li>
-                    <button data-target="service" data-title="AS 유지보수 접수">
-                        <i class='bx bxs-wrench'></i> AS 접수
-                    </button>
-                </li>
+            <ul class="nav-menu">
+                <li><a href="#" class="nav-link active" data-route="dashboard"><i class='bx bxs-dashboard'></i> 대시보드</a></li>
+                <li><a href="#" class="nav-link" data-route="clients"><i class='bx bx-buildings'></i> 거래처 관리</a></li>
+                <li><a href="#" class="nav-link" data-route="assets-mgr"><i class='bx bx-printer'></i> 자산(기기) 관리</a></li>
+                <li><a href="#" class="nav-link" data-route="service"><i class='bx bx-wrench'></i> A/S 접수</a></li>
             </ul>
-            <div class="user-info">
-                <p>송경환 님</p>
-                <small>ERP 담당자</small>
+            <div class="user-profile">
+                <div class="user-name"><i class='bx bxs-user-circle'></i> 송경환 님</div>
+                <div class="user-role">ERP 담당자</div>
             </div>
         </nav>
+    
+    <div class="content-wrapper">
+    
+<header class="top-header">
+    <button id="btn-toggle-sidebar" class="btn-toggle">
+        <i class='bx bx-menu'></i>
+    </button>
 
-        <div class="content-wrapper">
-            <header class="top-bar">
-                <button id="btn-toggle-sidebar" class="btn-icon">
-                    <i class='bx bx-menu'></i>
-                </button>
+    <h2 id="page-title">대시보드</h2>
+</header>
 
-                <h2 id="page-title">대시보드</h2>
-            </header>
-            <main id="app">
-                </main>
-        </div>
+    <main id="app" class="main-content">
+        </main>
     </div>
+    
+    <script type="module" src="main.js"></script>
 </body>
 </html>
