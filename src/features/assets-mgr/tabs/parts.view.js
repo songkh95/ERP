@@ -3,9 +3,7 @@ export async function render() {
     <div class="parts-tab-content">
         <div class="card">
             <div class="page-title-area" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <h3>
-                    <i class='bx bx-cog'></i> 모델별 부품 재고 현황
-                </h3>
+                <h3><i class='bx bx-cog'></i> 모델별 부품 재고 현황</h3>
                 <button id="btn-open-modal" class="btn-primary" style="padding: 8px 16px; background:#007bff; color:white; border:none; border-radius:4px; cursor:pointer;">
                     <i class='bx bx-plus'></i> 부품 입고/등록
                 </button>
@@ -38,9 +36,7 @@ export async function render() {
         </div>
 
         <div id="parts-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:999; justify-content:center; align-items:center;">
-            
             <div class="card" style="width:500px; max-width:90%; max-height:90vh; overflow-y:auto; margin:0; animation: slideDown 0.3s ease; background:white; padding:25px; border-radius:8px;">
-                
                 <div class="page-title-area" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid #eee; padding-bottom:10px;">
                     <h3 id="form-title" style="margin:0;"><i class='bx bx-edit'></i> 부품 정보 입력</h3>
                     <button id="btn-close-x" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
@@ -51,15 +47,12 @@ export async function render() {
 
                     <div class="form-group" style="margin-bottom: 20px; display:flex; flex-direction:column;">
                         <label style="margin-bottom:8px; font-weight:bold;">① 적용 모델 (기종) <span style="color:red">*</span></label>
-                        
                         <div style="display:flex; gap:5px; margin-bottom:5px;">
                             <select id="select-target-model" class="form-input" style="flex:1; padding:8px; border:1px solid #ccc; border-radius:4px;">
                                 <option value="">로딩 중...</option>
                             </select>
-                            
                             <button id="btn-new-model-mode" style="white-space:nowrap; font-size:0.8rem; padding:8px 12px; border:1px solid #ccc; background:#fff; color:#333; border-radius:4px; cursor:pointer;">✨ 새 모델</button>
                         </div>
-
                         <div id="new-model-input-area" style="margin-top:5px; display:none;">
                             <input type="text" id="input-new-target-model" class="form-input" placeholder="새로운 모델명 입력 (예: Canon IR-2525)" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid #ccc; border-radius:4px;">
                         </div>
@@ -67,22 +60,17 @@ export async function render() {
 
                     <div class="form-group" style="margin-bottom: 20px; display:flex; flex-direction:column;">
                         <label style="margin-bottom:8px; font-weight:bold;">② 부품 선택 <span style="color:red">*</span></label>
-                        
                         <div style="display:flex; gap:5px; margin-bottom:5px;">
                             <select id="select-parts-name" class="form-input" style="flex:1; padding:8px; border:1px solid #ccc; border-radius:4px;">
                                 <option value="">로딩 중...</option>
                             </select>
-                            
                             <button id="btn-new-parts-mode" style="white-space:nowrap; font-size:0.8rem; padding:8px 12px; border:1px solid #ccc; background:#fff; color:#333; border-radius:4px; cursor:pointer;">✨ 새 부품</button>
                         </div>
-                        
                         <div id="new-parts-inputs" style="margin-top:10px; border-top:1px dashed #ccc; padding-top:10px; display:none;">
                             <p style="font-size:0.8rem; color:#2563eb; margin-bottom:10px; font-weight:bold;">🆕 신규 부품 상세 정보</p>
-                            
                             <div style="margin-bottom: 10px; width: 100%;">
                                 <input type="text" id="input-new-name" class="form-input" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid #ccc; border-radius:4px;" placeholder="부품명 (예: 정착기 유닛)">
                             </div>
-                            
                             <div style="width: 100%;">
                                 <input type="text" id="input-new-code" class="form-input" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid #ccc; border-radius:4px;" placeholder="부품 코드 (선택)">
                             </div>
@@ -90,8 +78,8 @@ export async function render() {
                     </div>
 
                     <div class="form-group" style="margin-bottom: 20px; display:flex; flex-direction:column;">
-                        <label style="margin-bottom:5px; font-weight:bold;">③ 입고 수량 <span style="color:red">*</span></label>
-                        <input type="number" id="input-quantity" class="form-input" value="1" min="1" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+                        <label style="margin-bottom:5px; font-weight:bold;">③ 입고 수량 (마이너스 가능) <span style="color:red">*</span></label>
+                        <input type="number" id="input-quantity" class="form-input" value="1" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
                     </div>
 
                     <div class="form-group" style="margin-bottom: 20px; display:flex; flex-direction:column;">

@@ -98,8 +98,8 @@ export async function render() {
                     </div>
 
                     <div class="form-group" style="margin-bottom: 20px; display:flex; flex-direction:column;">
-                        <label style="margin-bottom:5px; font-weight:bold;">③ 입고 수량 <span style="color:red">*</span></label>
-                        <input type="number" id="input-quantity" class="form-input" value="1" min="1" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+                        <label style="margin-bottom:5px; font-weight:bold;">③ 수량 (마이너스 입력 가능) <span style="color:red">*</span></label>
+                        <input type="number" id="input-quantity" class="form-input" value="1" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
                     </div>
 
                     <div class="form-group" style="margin-bottom: 20px; display:flex; flex-direction:column;">

@@ -16,16 +16,31 @@ export async function render() {
                 <span style="color:#666;">데이터 로딩 중...</span>
             </div>
 
-            <div class="search-container" style="display:flex; gap:10px; margin-bottom:15px; background:#fff; border:1px solid #eee; padding:10px; border-radius:6px;">
-                <select id="search-filter" class="form-input" style="width:120px; padding:8px; border:1px solid #ccc; border-radius:4px;">
-                    <option value="all">전체</option>
-                    <option value="serial">S/N</option>
-                    <option value="model">모델명</option>
-                    <option value="client">고객사</option>
-                </select>
-                <div style="position:relative; flex:1;">
-                    <i class='bx bx-search' style="position:absolute; left:10px; top:10px; color:#999;"></i>
-                    <input type="text" id="search-input" class="form-input" placeholder="검색어 입력..." style="padding:8px 8px 8px 30px; width:100%; box-sizing:border-box; border:1px solid #ccc; border-radius:4px;">
+            <div class="search-container" style="margin-bottom:15px; background:#fff; border:1px solid #eee; padding:15px; border-radius:6px;">
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    
+                    <div style="display:flex; align-items:center; gap:5px; background:#f8f9fa; padding:5px 10px; border-radius:4px; border:1px solid #ddd;">
+                        <span style="font-size:0.8rem; font-weight:bold;">📅 등록일:</span>
+                        <input type="date" id="date-start" class="form-input" style="width:110px; padding:4px; font-size:0.8rem;">
+                        <span>~</span>
+                        <input type="date" id="date-end" class="form-input" style="width:110px; padding:4px; font-size:0.8rem;">
+                    </div>
+
+                    <div style="flex:1; display:flex; gap:5px;">
+                        <select id="search-filter" class="form-input" style="width:120px; padding:8px; border:1px solid #ccc; border-radius:4px;">
+                            <option value="all">전체</option>
+                            <option value="serial">S/N</option>
+                            <option value="model">모델명</option>
+                            <option value="client">설치 장소(고객사)</option>
+                        </select>
+                        <div style="position:relative; flex:1;">
+                            <i class='bx bx-search' style="position:absolute; left:10px; top:10px; color:#999;"></i>
+                            <input type="text" id="search-input" class="form-input" placeholder="검색어 입력..." style="padding:8px 8px 8px 30px; width:100%; box-sizing:border-box; border:1px solid #ccc; border-radius:4px;">
+                        </div>
+                    </div>
+                    
+                    <button id="btn-search-apply" class="btn-primary" style="padding:8px 15px;">조회</button>
+                    <button id="btn-search-reset" class="btn-secondary" style="padding:8px 15px;">초기화</button>
                 </div>
             </div>
 

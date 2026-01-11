@@ -120,7 +120,7 @@ export async function init() {
             .select('*')
             .order('target_model', { ascending: true })
             .order('name', { ascending: true })
-            .order('created_at', { ascending: false }); // 최신순
+            .order('created_at', { ascending: false });
 
         if (error) {
             console.error(error);
@@ -136,16 +136,12 @@ export async function init() {
 
     function loadRegisteredModels() {
         if(!selTargetModel) return;
-        
         const uniqueModels = new Set();
         uniqueModels.add("공용");
-
         allConsumables.forEach(item => {
             if(item.target_model) uniqueModels.add(item.target_model);
         });
-
         const sortedModels = [...uniqueModels].sort();
-
         let options = '<option value="">-- 모델 선택 --</option>';
         sortedModels.forEach(modelName => {
             options += `<option value="${modelName}">${modelName}</option>`;
@@ -155,15 +151,12 @@ export async function init() {
 
     function loadConsumableOptions() {
         if (!selConsumableName) return;
-        
         if (allConsumables.length === 0) {
             selConsumableName.innerHTML = '<option value="">(등록된 소모품 없음)</option>';
             return;
         }
-
         const uniqueItems = [];
         const map = new Map();
-        
         allConsumables.forEach(item => {
             if(!map.has(item.name)){
                 map.set(item.name, true);
@@ -171,12 +164,11 @@ export async function init() {
             }
         });
         uniqueItems.sort((a, b) => a.name.localeCompare(b.name));
-        
         selConsumableName.innerHTML = '<option value="">-- 소모품 선택 --</option>' + 
             uniqueItems.map(item => `<option value="${item.name}" data-category="${item.category}" data-code="${item.code}">[${item.category}] ${item.name}</option>`).join('');
     }
 
-    // --- ★★★ 아코디언(펼침) 스타일 렌더링 ★★★ ---
+    // --- 리스트 렌더링 ---
     function renderList(list) {
         if(!tbody) return;
         if (!list || list.length === 0) {
@@ -184,86 +176,126 @@ export async function init() {
             return;
         }
 
-        // 1. 모델 -> 소모품명 으로 그룹핑
         const grouped = {};
         list.forEach(item => {
             const modelKey = item.target_model || '공용 (기타)';
             if (!grouped[modelKey]) grouped[modelKey] = {};
-            
             const nameKey = item.name;
             if (!grouped[modelKey][nameKey]) grouped[modelKey][nameKey] = [];
-            
             grouped[modelKey][nameKey].push(item);
         });
 
         let html = '';
-        // 1단계: 모델 루프
+        
         for (const [modelName, nameGroups] of Object.entries(grouped)) {
             let itemsHtml = '';
             
-            // 2단계: 소모품 이름 루프
             for (const [consumableName, entries] of Object.entries(nameGroups)) {
-                // 통계 계산
                 const totalQty = entries.reduce((sum, entry) => sum + (entry.quantity || 0), 0);
                 const category = entries[0].category;
-                const latestEntry = entries.reduce((prev, current) => (prev.created_at > current.created_at) ? prev : current);
+                const latestEntry = entries[0];
                 const latestDate = new Date(latestEntry.created_at).toLocaleDateString();
                 const uniqueId = `detail-${modelName.replace(/\s/g, '-')}-${consumableName.replace(/\s/g, '-')}`;
 
-                // 상세 내역 HTML (숨김 상태)
-                const detailRows = entries.map(entry => {
+                const SHOW_LIMIT = 5;
+                const recentEntries = entries.slice(0, SHOW_LIMIT);
+                const hiddenEntries = entries.slice(SHOW_LIMIT);
+                
+                const createRowHtml = (entry) => {
                     const date = new Date(entry.created_at).toLocaleDateString();
-                    return `
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 15px; border-bottom:1px solid #eee; background:#fafafa; font-size:0.9rem;">
-                        <div style="flex:2;">
-                            <span style="color:#666;">${date}</span>
-                        </div>
-                        <div style="flex:1; text-align:right;">
-                            <span style="font-weight:bold;">${entry.quantity}개</span>
-                        </div>
-                        <div style="flex:2; text-align:right; color:#888;">
-                            ${entry.location || '-'}
-                        </div>
-                        <div style="flex:1; text-align:right;">
-                            <button class="btn-edit-entry" data-id="${entry.id}" style="font-size:0.8rem; padding:2px 6px; cursor:pointer;">✏️</button>
-                            <button class="btn-delete-entry" data-id="${entry.id}" style="font-size:0.8rem; padding:2px 6px; color:red; cursor:pointer;">🗑️</button>
-                        </div>
-                    </div>
-                    `;
-                }).join('');
+                    const location = entry.location || '-';
+                    
+                    let qtyDisplay = `${entry.quantity}개`;
+                    let rowColor = "#fafafa";
+                    
+                    if (entry.quantity < 0) {
+                        if (location.includes('회수')) {
+                             qtyDisplay = `<span style="color:blue; font-weight:bold;">${entry.quantity}개 (회수)</span>`;
+                        } else {
+                             qtyDisplay = `<span style="color:#e74c3c; font-weight:bold;">${entry.quantity}개 (사용)</span>`;
+                        }
+                    } else {
+                        if (location.includes('반환')) {
+                            qtyDisplay = `<span style="color:green; font-weight:bold;">+${entry.quantity}개 (반환)</span>`;
+                        } else {
+                            qtyDisplay = `<span style="color:#333; font-weight:bold;">+${entry.quantity}개 (입고)</span>`;
+                        }
+                    }
 
-                // 요약 행 HTML (클릭 시 토글)
+                    // ★ data-location 속성 추가 (검색용)
+                    return `
+                    <div class="history-row" data-date="${entry.created_at.split('T')[0]}" data-location="${location}" style="display:flex; justify-content:space-between; align-items:center; padding:8px 15px; border-bottom:1px solid #eee; background:${rowColor}; font-size:0.9rem;">
+                        <div style="flex:2; color:#555;">${date}</div>
+                        <div style="flex:2; text-align:right;">${qtyDisplay}</div>
+                        <div style="flex:3; text-align:right; color:#666; font-size:0.85rem;">${location}</div>
+                        <div style="flex:1; text-align:right;">
+                            <button class="btn-edit-entry" data-id="${entry.id}" style="border:1px solid #ddd; background:white; cursor:pointer; padding:2px 5px; border-radius:3px;">✏️</button>
+                            <button class="btn-delete-entry" data-id="${entry.id}" style="border:1px solid #fee2e2; color:red; background:white; cursor:pointer; padding:2px 5px; border-radius:3px;">🗑️</button>
+                        </div>
+                    </div>`;
+                };
+
+                const visibleRows = recentEntries.map(createRowHtml).join('');
+                const hiddenRows = hiddenEntries.map(createRowHtml).join('');
+
+                let moreBtnHtml = '';
+                if (hiddenEntries.length > 0) {
+                    moreBtnHtml = `
+                    <div style="text-align:center; padding:10px; background:#fff;">
+                        <button class="btn-show-more" onclick="this.parentElement.previousElementSibling.style.display='block'; this.parentElement.style.display='none';" 
+                            style="width:100%; padding:8px; border:1px dashed #ccc; background:#f8f9fa; color:#666; cursor:pointer; border-radius:4px;">
+                            ▼ 이전 내역 ${hiddenEntries.length}건 더보기
+                        </button>
+                    </div>
+                    <div class="hidden-rows" style="display:none;">${hiddenRows}</div>
+                    `;
+                }
+
                 itemsHtml += `
                 <div class="consumable-group" style="margin-bottom:5px; border:1px solid #eee; border-radius:6px; overflow:hidden;">
                     <div class="group-header" onclick="document.getElementById('${uniqueId}').style.display = document.getElementById('${uniqueId}').style.display === 'none' ? 'block' : 'none'" 
-                         style="display:flex; justify-content:space-between; align-items:center; padding:12px 15px; background:white; cursor:pointer; hover:background:#f9f9f9;">
-                        
+                         style="display:flex; justify-content:space-between; align-items:center; padding:12px 15px; background:white; cursor:pointer;">
                         <div style="display:flex; align-items:center; gap:10px;">
                             <span class="badge" style="background:#f3f4f6; color:#555;">${category}</span>
                             <span style="font-weight:600; color:#333; font-size:1.05rem;">${consumableName}</span>
                             <i class='bx bx-chevron-down' style="color:#999;"></i>
                         </div>
-                        
                         <div style="text-align:right;">
-                            <div style="font-size:1.1rem; font-weight:bold; color:#333;">총 ${totalQty}개</div>
-                            <div style="font-size:0.8rem; color:#888;">최근 등록: ${latestDate}</div>
+                            <div style="font-size:1.1rem; font-weight:bold; color:#333;">재고: ${totalQty}개</div>
+                            <div style="font-size:0.8rem; color:#888;">최근: ${latestDate}</div>
                         </div>
                     </div>
 
                     <div id="${uniqueId}" style="display:none; border-top:1px solid #eee;">
-                        <div style="background:#f1f3f5; padding:5px 15px; font-size:0.8rem; color:#666; display:flex; font-weight:bold;">
-                            <div style="flex:2;">등록 일시</div>
-                            <div style="flex:1; text-align:right;">수량</div>
-                            <div style="flex:2; text-align:right;">재고 위치</div>
+                        
+                        <div style="padding:10px; background:#f1f3f5; display:flex; flex-wrap:wrap; gap:5px; align-items:center; border-bottom:1px solid #ddd;">
+                            <span style="font-size:0.8rem; font-weight:bold;">🔎 검색:</span>
+                            <input type="date" class="date-filter-start" style="padding:4px; border:1px solid #ccc; font-size:0.8rem; width:110px;">
+                            <span>~</span>
+                            <input type="date" class="date-filter-end" style="padding:4px; border:1px solid #ccc; font-size:0.8rem; width:110px;">
+                            
+                            <input type="text" class="location-filter" placeholder="장소/거래처/내용" style="padding:4px; border:1px solid #ccc; font-size:0.8rem; width:120px;">
+                            
+                            <button class="btn-apply-filter" style="padding:4px 10px; background:#666; color:white; border:none; border-radius:3px; cursor:pointer; font-size:0.8rem;">조회</button>
+                            <button class="btn-reset-filter" style="padding:4px 10px; background:white; border:1px solid #ccc; border-radius:3px; cursor:pointer; font-size:0.8rem;">초기화</button>
+                        </div>
+
+                        <div style="background:#fff; padding:5px 15px; font-size:0.8rem; color:#888; display:flex; font-weight:bold; border-bottom:1px solid #eee;">
+                            <div style="flex:2;">일시</div>
+                            <div style="flex:2; text-align:right;">변동 수량</div>
+                            <div style="flex:3; text-align:right;">내용/위치</div>
                             <div style="flex:1; text-align:right;">관리</div>
                         </div>
-                        ${detailRows}
+
+                        <div class="rows-container">
+                            ${visibleRows}
+                            ${moreBtnHtml}
+                        </div>
                     </div>
                 </div>
                 `;
             }
 
-            // 모델별 행 생성
             html += `
             <tr style="border-bottom:2px solid #e0e0e0;">
                 <td style="vertical-align:top; background-color:#fafafa; font-weight:bold; color:#0056b3;">
@@ -276,54 +308,74 @@ export async function init() {
             `;
         }
         tbody.innerHTML = html;
+
+        attachFilterEvents();
     }
 
-    // --- 이벤트 핸들러 ---
-    if(btnNewModelMode) {
-        btnNewModelMode.addEventListener('click', () => {
-            isNewModelMode = !isNewModelMode;
-            if(isNewModelMode) {
-                newModelInputArea.style.display = 'block';
-                selTargetModel.disabled = true;
-                selTargetModel.value = "";
-                btnNewModelMode.textContent = "↩️ 취소";
-                btnNewModelMode.style.background = "#6c757d";
-                btnNewModelMode.style.color = "white";
-            } else {
-                newModelInputArea.style.display = 'none';
-                selTargetModel.disabled = false;
-                btnNewModelMode.textContent = "✨ 새 모델";
-                btnNewModelMode.style.background = "#fff";
-                btnNewModelMode.style.color = "#333";
-            }
+    // --- 내부 필터 이벤트 처리 ---
+    function attachFilterEvents() {
+        document.querySelectorAll('.btn-apply-filter').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const parent = e.target.closest('div').parentElement;
+                
+                const startVal = parent.querySelector('.date-filter-start').value;
+                const endVal = parent.querySelector('.date-filter-end').value;
+                const locVal = parent.querySelector('.location-filter').value.toLowerCase(); // ★ 장소 검색어
+
+                const rows = parent.querySelectorAll('.history-row');
+                const moreBtn = parent.querySelector('.btn-show-more')?.parentElement;
+                const hiddenDiv = parent.querySelector('.hidden-rows');
+
+                if(!startVal && !endVal && !locVal) return alert('검색 조건을 입력하세요.');
+
+                if(moreBtn) moreBtn.style.display = 'none';
+                if(hiddenDiv) hiddenDiv.style.display = 'block';
+
+                let visibleCount = 0;
+                rows.forEach(row => {
+                    const rowDate = row.dataset.date;
+                    const rowLoc = (row.dataset.location || '').toLowerCase(); // ★ 장소 데이터 확인
+
+                    let show = true;
+                    // 날짜 조건
+                    if(startVal && rowDate < startVal) show = false;
+                    if(endVal && rowDate > endVal) show = false;
+                    
+                    // 장소/내용 조건 (포함 여부 확인)
+                    if(locVal && !rowLoc.includes(locVal)) show = false;
+                    
+                    row.style.display = show ? 'flex' : 'none';
+                    if(show) visibleCount++;
+                });
+
+                if(visibleCount === 0) alert('검색 결과가 없습니다.');
+            });
+        });
+
+        // 초기화 버튼
+        document.querySelectorAll('.btn-reset-filter').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const parent = e.target.closest('div').parentElement;
+                parent.querySelector('.date-filter-start').value = '';
+                parent.querySelector('.date-filter-end').value = '';
+                parent.querySelector('.location-filter').value = ''; // 초기화
+                
+                const rows = parent.querySelectorAll('.history-row');
+                rows.forEach(r => r.style.display = 'flex');
+                
+                const hiddenDiv = parent.querySelector('.hidden-rows');
+                if(hiddenDiv) hiddenDiv.style.display = 'block';
+                
+                const moreBtn = parent.querySelector('.btn-show-more')?.parentElement;
+                if(moreBtn) moreBtn.style.display = 'none';
+            });
         });
     }
 
-    if(btnNewConsumableMode) {
-        btnNewConsumableMode.addEventListener('click', () => {
-            isNewConsumableMode = !isNewConsumableMode;
-            if (isNewConsumableMode) {
-                newConsumableInputs.style.display = 'block';
-                selConsumableName.disabled = true;
-                selConsumableName.value = "";
-                btnNewConsumableMode.textContent = "↩️ 취소";
-                btnNewConsumableMode.style.background = "#6c757d";
-                btnNewConsumableMode.style.color = "white";
-            } else {
-                newConsumableInputs.style.display = 'none';
-                selConsumableName.disabled = false;
-                btnNewConsumableMode.textContent = "✨ 새 소모품";
-                btnNewConsumableMode.style.background = "#fff";
-                btnNewConsumableMode.style.color = "#333";
-            }
-        });
-    }
-
-    // --- 저장 로직 (항상 Insert) ---
     if(btnSave) {
         btnSave.addEventListener('click', async () => {
             let category, name, code, targetModel;
-            const quantity = parseInt(inputQuantity.value) || 0;
+            const quantity = parseInt(inputQuantity.value);
             const location = inputLocation.value.trim();
 
             if(isNewModelMode) {
@@ -348,13 +400,11 @@ export async function init() {
             }
 
             if (editingId) {
-                // 수정
                 await supabase.from('consumables')
                     .update({ category, name, code, target_model: targetModel, quantity, location })
                     .eq('id', editingId);
                 alert('수정되었습니다.');
             } else {
-                // ★ 중요: 무조건 Insert (히스토리 누적)
                 await supabase.from('consumables')
                     .insert({ category, name, code, target_model: targetModel, quantity, location });
                 alert('등록되었습니다.');
@@ -365,22 +415,18 @@ export async function init() {
         });
     }
 
-    // --- 개별 수정/삭제 (펼침 목록 내부 버튼) ---
     if(tbody) {
         tbody.addEventListener('click', async (e) => {
-            // 상세 목록 안의 버튼들 처리
             const btnEdit = e.target.closest('.btn-edit-entry');
             const btnDelete = e.target.closest('.btn-delete-entry');
 
             if (btnEdit) {
-                // 기존 데이터를 찾아서 모달에 채움
                 const id = btnEdit.dataset.id;
                 const item = allConsumables.find(c => c.id == id);
                 if(item) {
                     editingId = item.id;
                     inputId.value = editingId;
                     
-                    // 수정 시에는 상세 입력 모드로 전환해서 보여줌
                     isNewConsumableMode = true;
                     newConsumableInputs.style.display = 'block';
                     selConsumableName.disabled = true;
@@ -397,7 +443,6 @@ export async function init() {
                     btnNewModelMode.style.background = "#6c757d";
                     btnNewModelMode.style.color = "white";
 
-                    // 데이터 바인딩
                     inputNewTargetModel.value = item.target_model || '공용';
                     inputNewCategory.value = item.category;
                     inputNewName.value = item.name;

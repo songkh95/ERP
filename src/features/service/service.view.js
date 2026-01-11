@@ -48,33 +48,31 @@ export async function render() {
                     </div>
 
                     <div class="form-group" style="background:#f8f9fa; padding:15px; border-radius:8px; border:1px solid #eee;">
-                        <label style="margin-bottom:10px; display:block; font-weight:600;">배송 품목 선택</label>
+                        <label style="margin-bottom:10px; display:block; font-weight:600;">📦 소모품 사용 내역 (다중 선택 가능)</label>
                         
-                        <div style="display:flex; gap:30px;">
-                            <div style="flex:1;">
-                                <div style="margin-bottom:5px; font-weight:600; color:#444; border-bottom:1px dashed #ccc; padding-bottom:3px;">
-                                    <label><input type="checkbox" class="chk-all" data-target="toner"> ⚫ 토너 (전체)</label>
-                                </div>
-                                <div style="display:flex; flex-wrap:wrap; gap:10px;">
-                                    <label><input type="checkbox" name="deli-toner" value="BK"> BK</label>
-                                    <label><input type="checkbox" name="deli-toner" value="C"> C</label>
-                                    <label><input type="checkbox" name="deli-toner" value="M"> M</label>
-                                    <label><input type="checkbox" name="deli-toner" value="Y"> Y</label>
-                                </div>
+                        <div style="display:flex; gap:10px; align-items:flex-end; margin-bottom:10px;">
+                            <div style="flex:3;">
+                                <label style="font-size:0.8rem; color:#666;">소모품 선택</label>
+                                <select id="service-consumable-select" class="form-input" style="width:100%;">
+                                    <option value="">(목록 로딩 중...)</option>
+                                </select>
                             </div>
-
                             <div style="flex:1;">
-                                <div style="margin-bottom:5px; font-weight:600; color:#444; border-bottom:1px dashed #ccc; padding-bottom:3px;">
-                                    <label><input type="checkbox" class="chk-all" data-target="drum"> 🔵 드럼 (전체)</label>
-                                </div>
-                                <div style="display:flex; flex-wrap:wrap; gap:10px;">
-                                    <label><input type="checkbox" name="deli-drum" value="BK"> BK</label>
-                                    <label><input type="checkbox" name="deli-drum" value="C"> C</label>
-                                    <label><input type="checkbox" name="deli-drum" value="M"> M</label>
-                                    <label><input type="checkbox" name="deli-drum" value="Y"> Y</label>
-                                </div>
+                                <label style="font-size:0.8rem; color:#666;">수량 (마이너스 가능)</label>
+                                <input type="number" id="service-consumable-qty" class="form-input" value="1" style="width:100%;">
                             </div>
+                            <button id="btn-add-consumable" class="btn-secondary" style="padding:10px 15px; height:42px;">
+                                <i class='bx bx-plus'></i> 추가
+                            </button>
                         </div>
+
+                        <div id="added-consumables-list" style="background:white; border:1px solid #ddd; border-radius:4px; min-height:50px; padding:10px; display:flex; flex-direction:column; gap:5px;">
+                            <div style="color:#999; font-size:0.9rem; text-align:center;">사용된 소모품이 없습니다.</div>
+                        </div>
+                        
+                        <p style="font-size:0.75rem; color:#888; margin-top:8px;">
+                            ※ 양수(+) 입력 시 재고 차감, 음수(-) 입력 시 재고 반환 처리됩니다.
+                        </p>
                     </div>
 
                     <div class="grid-2" style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">

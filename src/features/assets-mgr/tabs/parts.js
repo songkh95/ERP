@@ -24,18 +24,14 @@ export async function init() {
     const inputQuantity = document.getElementById('input-quantity');
     const inputLocation = document.getElementById('input-location');
 
-    // 1. 적용 모델 관련
     const selTargetModel = document.getElementById('select-target-model');
     const btnNewModelMode = document.getElementById('btn-new-model-mode');
     const inputNewTargetModel = document.getElementById('input-new-target-model');
     const newModelInputArea = document.getElementById('new-model-input-area');
 
-    // 2. 부품 선택 관련
     const selPartsName = document.getElementById('select-parts-name');
     const btnNewPartsMode = document.getElementById('btn-new-parts-mode');
     const newPartsInputs = document.getElementById('new-parts-inputs');
-    
-    // 신규 부품 상세 (분류 선택 삭제됨)
     const inputNewName = document.getElementById('input-new-name');
     const inputNewCode = document.getElementById('input-new-code');
 
@@ -75,7 +71,6 @@ export async function init() {
         if(inputQuantity) inputQuantity.value = '1';
         if(inputLocation) inputLocation.value = '';
 
-        // 모델 초기화
         isNewModelMode = false;
         if(selTargetModel) {
             selTargetModel.disabled = false;
@@ -89,7 +84,6 @@ export async function init() {
             btnNewModelMode.style.color = "#333";
         }
 
-        // 부품 초기화
         isNewPartsMode = false;
         if(selPartsName) {
             selPartsName.disabled = false;
@@ -102,7 +96,6 @@ export async function init() {
             btnNewPartsMode.style.color = "#333";
         }
 
-        // 입력창 초기화
         if(inputNewName) inputNewName.value = '';
         if(inputNewCode) inputNewCode.value = '';
     }
@@ -135,16 +128,12 @@ export async function init() {
 
     function loadRegisteredModels() {
         if(!selTargetModel) return;
-        
         const uniqueModels = new Set();
         uniqueModels.add("공용");
-
         allParts.forEach(item => {
             if(item.target_model) uniqueModels.add(item.target_model);
         });
-
         const sortedModels = [...uniqueModels].sort();
-
         let options = '<option value="">-- 모델 선택 --</option>';
         sortedModels.forEach(modelName => {
             options += `<option value="${modelName}">${modelName}</option>`;
@@ -154,15 +143,12 @@ export async function init() {
 
     function loadPartsOptions() {
         if (!selPartsName) return;
-        
         if (allParts.length === 0) {
             selPartsName.innerHTML = '<option value="">(등록된 부품 없음)</option>';
             return;
         }
-
         const uniqueItems = [];
         const map = new Map();
-        
         allParts.forEach(item => {
             if(!map.has(item.name)){
                 map.set(item.name, true);
@@ -170,12 +156,11 @@ export async function init() {
             }
         });
         uniqueItems.sort((a, b) => a.name.localeCompare(b.name));
-        
         selPartsName.innerHTML = '<option value="">-- 부품 선택 --</option>' + 
-            uniqueItems.map(item => `<option value="${item.name}" data-category="${item.category}" data-code="${item.code}">[${item.name}]</option>`).join('');
+            uniqueItems.map(item => `<option value="${item.name}" data-category="${item.category}" data-code="${item.code}">[${item.category || '부품'}] ${item.name}</option>`).join('');
     }
 
-    // --- 리스트 렌더링 (아코디언) ---
+    // --- 리스트 렌더링 (아코디언 + 필터) ---
     function renderList(list) {
         if(!tbody) return;
         if (!list || list.length === 0) {
@@ -187,70 +172,107 @@ export async function init() {
         list.forEach(item => {
             const modelKey = item.target_model || '공용 (기타)';
             if (!grouped[modelKey]) grouped[modelKey] = {};
-            
             const nameKey = item.name;
             if (!grouped[modelKey][nameKey]) grouped[modelKey][nameKey] = [];
-            
             grouped[modelKey][nameKey].push(item);
         });
 
         let html = '';
+        
         for (const [modelName, nameGroups] of Object.entries(grouped)) {
             let itemsHtml = '';
             
             for (const [partName, entries] of Object.entries(nameGroups)) {
                 const totalQty = entries.reduce((sum, entry) => sum + (entry.quantity || 0), 0);
-                const category = entries[0].category || '부품'; // 카테고리 없으면 '부품' 표시
-                const latestEntry = entries.reduce((prev, current) => (prev.created_at > current.created_at) ? prev : current);
+                const category = entries[0].category || '부품';
+                const latestEntry = entries[0];
                 const latestDate = new Date(latestEntry.created_at).toLocaleDateString();
                 const uniqueId = `detail-${modelName.replace(/\s/g, '-')}-${partName.replace(/\s/g, '-')}`;
 
-                const detailRows = entries.map(entry => {
+                const SHOW_LIMIT = 5;
+                const recentEntries = entries.slice(0, SHOW_LIMIT);
+                const hiddenEntries = entries.slice(SHOW_LIMIT);
+                
+                const createRowHtml = (entry) => {
                     const date = new Date(entry.created_at).toLocaleDateString();
+                    const location = entry.location || '-';
+                    
+                    let qtyDisplay = `${entry.quantity}개`;
+                    let rowColor = "#fafafa";
+                    
+                    if (entry.quantity < 0) {
+                        if (location.includes('회수')) qtyDisplay = `<span style="color:blue; font-weight:bold;">${entry.quantity}개 (회수)</span>`;
+                        else qtyDisplay = `<span style="color:#e74c3c; font-weight:bold;">${entry.quantity}개 (사용)</span>`;
+                    } else {
+                        if (location.includes('반환')) qtyDisplay = `<span style="color:green; font-weight:bold;">+${entry.quantity}개 (반환)</span>`;
+                        else qtyDisplay = `<span style="color:#333; font-weight:bold;">+${entry.quantity}개 (입고)</span>`;
+                    }
+
                     return `
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 15px; border-bottom:1px solid #eee; background:#fafafa; font-size:0.9rem;">
-                        <div style="flex:2;">
-                            <span style="color:#666;">${date} 등록</span>
-                        </div>
+                    <div class="history-row" data-date="${entry.created_at.split('T')[0]}" data-location="${location}" style="display:flex; justify-content:space-between; align-items:center; padding:8px 15px; border-bottom:1px solid #eee; background:${rowColor}; font-size:0.9rem;">
+                        <div style="flex:2; color:#555;">${date}</div>
+                        <div style="flex:2; text-align:right;">${qtyDisplay}</div>
+                        <div style="flex:3; text-align:right; color:#666; font-size:0.85rem;">${location}</div>
                         <div style="flex:1; text-align:right;">
-                            <span style="font-weight:bold; color:#333;">${entry.quantity}개</span>
+                            <button class="btn-edit-entry" data-id="${entry.id}" style="border:1px solid #ddd; background:white; cursor:pointer; padding:2px 5px; border-radius:3px;">✏️</button>
+                            <button class="btn-delete-entry" data-id="${entry.id}" style="border:1px solid #fee2e2; color:red; background:white; cursor:pointer; padding:2px 5px; border-radius:3px;">🗑️</button>
                         </div>
-                        <div style="flex:2; text-align:right; color:#888;">
-                            ${entry.location || '-'}
-                        </div>
-                        <div style="flex:1; text-align:right;">
-                            <button class="btn-edit-entry" data-id="${entry.id}" style="font-size:0.8rem; padding:2px 6px; cursor:pointer;">✏️</button>
-                            <button class="btn-delete-entry" data-id="${entry.id}" style="font-size:0.8rem; padding:2px 6px; color:red; cursor:pointer;">🗑️</button>
-                        </div>
+                    </div>`;
+                };
+
+                const visibleRows = recentEntries.map(createRowHtml).join('');
+                const hiddenRows = hiddenEntries.map(createRowHtml).join('');
+
+                let moreBtnHtml = '';
+                if (hiddenEntries.length > 0) {
+                    moreBtnHtml = `
+                    <div style="text-align:center; padding:10px; background:#fff;">
+                        <button class="btn-show-more" onclick="this.parentElement.previousElementSibling.style.display='block'; this.parentElement.style.display='none';" 
+                            style="width:100%; padding:8px; border:1px dashed #ccc; background:#f8f9fa; color:#666; cursor:pointer; border-radius:4px;">
+                            ▼ 이전 내역 ${hiddenEntries.length}건 더보기
+                        </button>
                     </div>
+                    <div class="hidden-rows" style="display:none;">${hiddenRows}</div>
                     `;
-                }).join('');
+                }
 
                 itemsHtml += `
                 <div class="parts-group" style="margin-bottom:5px; border:1px solid #eee; border-radius:6px; overflow:hidden;">
                     <div class="group-header" onclick="document.getElementById('${uniqueId}').style.display = document.getElementById('${uniqueId}').style.display === 'none' ? 'block' : 'none'" 
-                         style="display:flex; justify-content:space-between; align-items:center; padding:12px 15px; background:white; cursor:pointer; hover:background:#f9f9f9;">
-                        
+                         style="display:flex; justify-content:space-between; align-items:center; padding:12px 15px; background:white; cursor:pointer;">
                         <div style="display:flex; align-items:center; gap:10px;">
                             <span class="badge" style="background:#fff3cd; color:#856404;">${category}</span>
                             <span style="font-weight:600; color:#333; font-size:1.05rem;">${partName}</span>
                             <i class='bx bx-chevron-down' style="color:#999;"></i>
                         </div>
-                        
                         <div style="text-align:right;">
-                            <div style="font-size:1.1rem; font-weight:bold; color:#333;">총 ${totalQty}개</div>
-                            <div style="font-size:0.8rem; color:#888;">최근 등록: ${latestDate}</div>
+                            <div style="font-size:1.1rem; font-weight:bold; color:#333;">재고: ${totalQty}개</div>
+                            <div style="font-size:0.8rem; color:#888;">최근: ${latestDate}</div>
                         </div>
                     </div>
 
                     <div id="${uniqueId}" style="display:none; border-top:1px solid #eee;">
-                        <div style="background:#f1f3f5; padding:5px 15px; font-size:0.8rem; color:#666; display:flex; font-weight:bold;">
-                            <div style="flex:2;">등록 일시</div>
-                            <div style="flex:1; text-align:right;">수량</div>
-                            <div style="flex:2; text-align:right;">재고 위치</div>
+                        <div style="padding:10px; background:#f1f3f5; display:flex; flex-wrap:wrap; gap:5px; align-items:center; border-bottom:1px solid #ddd;">
+                            <span style="font-size:0.8rem; font-weight:bold;">🔎 검색:</span>
+                            <input type="date" class="date-filter-start" style="padding:4px; border:1px solid #ccc; font-size:0.8rem; width:110px;">
+                            <span>~</span>
+                            <input type="date" class="date-filter-end" style="padding:4px; border:1px solid #ccc; font-size:0.8rem; width:110px;">
+                            <input type="text" class="location-filter" placeholder="장소/거래처/내용" style="padding:4px; border:1px solid #ccc; font-size:0.8rem; width:120px;">
+                            <button class="btn-apply-filter" style="padding:4px 10px; background:#666; color:white; border:none; border-radius:3px; cursor:pointer; font-size:0.8rem;">조회</button>
+                            <button class="btn-reset-filter" style="padding:4px 10px; background:white; border:1px solid #ccc; border-radius:3px; cursor:pointer; font-size:0.8rem;">초기화</button>
+                        </div>
+
+                        <div style="background:#fff; padding:5px 15px; font-size:0.8rem; color:#888; display:flex; font-weight:bold; border-bottom:1px solid #eee;">
+                            <div style="flex:2;">일시</div>
+                            <div style="flex:2; text-align:right;">변동 수량</div>
+                            <div style="flex:3; text-align:right;">내용/위치</div>
                             <div style="flex:1; text-align:right;">관리</div>
                         </div>
-                        ${detailRows}
+
+                        <div class="rows-container">
+                            ${visibleRows}
+                            ${moreBtnHtml}
+                        </div>
                     </div>
                 </div>
                 `;
@@ -268,59 +290,70 @@ export async function init() {
             `;
         }
         tbody.innerHTML = html;
+
+        attachFilterEvents();
     }
 
-    // --- 이벤트 핸들러 ---
-    if(btnNewModelMode) {
-        btnNewModelMode.addEventListener('click', () => {
-            isNewModelMode = !isNewModelMode;
-            if(isNewModelMode) {
-                newModelInputArea.style.display = 'block';
-                selTargetModel.disabled = true;
-                selTargetModel.value = "";
+    function attachFilterEvents() {
+        document.querySelectorAll('.btn-apply-filter').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const parent = e.target.closest('div').parentElement;
                 
-                btnNewModelMode.textContent = "↩️ 취소";
-                btnNewModelMode.style.background = "#6c757d";
-                btnNewModelMode.style.color = "white";
-            } else {
-                newModelInputArea.style.display = 'none';
-                selTargetModel.disabled = false;
+                const startVal = parent.querySelector('.date-filter-start').value;
+                const endVal = parent.querySelector('.date-filter-end').value;
+                const locVal = parent.querySelector('.location-filter').value.toLowerCase();
+
+                const rows = parent.querySelectorAll('.history-row');
+                const moreBtn = parent.querySelector('.btn-show-more')?.parentElement;
+                const hiddenDiv = parent.querySelector('.hidden-rows');
+
+                if(!startVal && !endVal && !locVal) return alert('검색 조건을 입력하세요.');
+
+                if(moreBtn) moreBtn.style.display = 'none';
+                if(hiddenDiv) hiddenDiv.style.display = 'block';
+
+                let visibleCount = 0;
+                rows.forEach(row => {
+                    const rowDate = row.dataset.date;
+                    const rowLoc = (row.dataset.location || '').toLowerCase();
+
+                    let show = true;
+                    if(startVal && rowDate < startVal) show = false;
+                    if(endVal && rowDate > endVal) show = false;
+                    if(locVal && !rowLoc.includes(locVal)) show = false;
+                    
+                    row.style.display = show ? 'flex' : 'none';
+                    if(show) visibleCount++;
+                });
+
+                if(visibleCount === 0) alert('검색 결과가 없습니다.');
+            });
+        });
+
+        document.querySelectorAll('.btn-reset-filter').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const parent = e.target.closest('div').parentElement;
+                parent.querySelector('.date-filter-start').value = '';
+                parent.querySelector('.date-filter-end').value = '';
+                parent.querySelector('.location-filter').value = '';
                 
-                btnNewModelMode.textContent = "✨ 새 모델";
-                btnNewModelMode.style.background = "#fff";
-                btnNewModelMode.style.color = "#333";
-            }
+                const rows = parent.querySelectorAll('.history-row');
+                rows.forEach(r => r.style.display = 'flex');
+                
+                const hiddenDiv = parent.querySelector('.hidden-rows');
+                if(hiddenDiv) hiddenDiv.style.display = 'block';
+                
+                const moreBtn = parent.querySelector('.btn-show-more')?.parentElement;
+                if(moreBtn) moreBtn.style.display = 'none';
+            });
         });
     }
 
-    if(btnNewPartsMode) {
-        btnNewPartsMode.addEventListener('click', () => {
-            isNewPartsMode = !isNewPartsMode;
-            if (isNewPartsMode) {
-                newPartsInputs.style.display = 'block';
-                selPartsName.disabled = true;
-                selPartsName.value = "";
-                
-                btnNewPartsMode.textContent = "↩️ 취소";
-                btnNewPartsMode.style.background = "#6c757d";
-                btnNewPartsMode.style.color = "white";
-            } else {
-                newPartsInputs.style.display = 'none';
-                selPartsName.disabled = false;
-                
-                btnNewPartsMode.textContent = "✨ 새 부품";
-                btnNewPartsMode.style.background = "#fff";
-                btnNewPartsMode.style.color = "#333";
-            }
-        });
-    }
-
-    // --- 저장 로직 ---
     if(btnSave) {
         btnSave.addEventListener('click', async () => {
-            let category = "부품"; // 기본값
+            let category = "부품";
             let name, code, targetModel;
-            const quantity = parseInt(inputQuantity.value) || 0;
+            const quantity = parseInt(inputQuantity.value);
             const location = inputLocation.value.trim();
 
             if(isNewModelMode) {
@@ -332,7 +365,6 @@ export async function init() {
             }
 
             if (isNewPartsMode) {
-                // category는 이제 입력받지 않으므로 기본값 사용하거나 빈 값
                 name = inputNewName.value.trim();
                 code = inputNewCode.value.trim();
                 if (!name) return alert('부품명을 입력해주세요.');
@@ -360,7 +392,6 @@ export async function init() {
         });
     }
 
-    // --- 개별 수정/삭제 ---
     if(tbody) {
         tbody.addEventListener('click', async (e) => {
             const btnEdit = e.target.closest('.btn-edit-entry');

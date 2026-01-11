@@ -16,9 +16,15 @@ export async function init() {
     const formTitle = document.getElementById('form-title');
 
     const tbody = document.getElementById('asset-list-tbody');
+    const modelSummaryArea = document.getElementById('model-summary-area');
+
+    // ★ 검색 관련 요소
     const searchInput = document.getElementById('search-input');
     const searchFilter = document.getElementById('search-filter');
-    const modelSummaryArea = document.getElementById('model-summary-area'); // ★ 추가됨
+    const dateStart = document.getElementById('date-start');
+    const dateEnd = document.getElementById('date-end');
+    const btnSearchApply = document.getElementById('btn-search-apply');
+    const btnSearchReset = document.getElementById('btn-search-reset');
 
     // 폼 내부 요소
     const selModel = document.getElementById('select-model');
@@ -123,10 +129,9 @@ export async function init() {
         if (countSpan) countSpan.textContent = `${data.length}대`;
         
         renderList(allAssets);
-        renderModelStats(allAssets); // ★ 추가됨: 모델별 통계 업데이트
+        renderModelStats(allAssets); 
     }
 
-    // ★ 모델별 수량 통계 렌더링 함수
     function renderModelStats(assets) {
         if (!modelSummaryArea) return;
         if (!assets || assets.length === 0) {
@@ -134,17 +139,14 @@ export async function init() {
             return;
         }
 
-        // 1. 모델별 개수 카운트
         const stats = {};
         assets.forEach(item => {
             const modelName = item.products?.model_name || '모델 미지정';
             stats[modelName] = (stats[modelName] || 0) + 1;
         });
 
-        // 2. 많이 있는 순서대로 정렬 (선택사항)
         const sortedModels = Object.entries(stats).sort((a, b) => b[1] - a[1]);
 
-        // 3. HTML 생성 (뱃지 형태)
         const html = sortedModels.map(([name, count]) => `
             <div style="background:white; padding:5px 10px; border-radius:20px; border:1px solid #ddd; box-shadow:0 1px 2px rgba(0,0,0,0.05); display:flex; align-items:center;">
                 <span style="font-weight:600; color:#333; margin-right:6px;">${name}</span>
@@ -200,6 +202,62 @@ export async function init() {
             </tr>
             `;
         }).join('');
+    }
+
+    // --- ★ 검색 및 필터 로직 ---
+    function filterAssets() {
+        const keyword = searchInput.value.toLowerCase();
+        const filterType = searchFilter.value;
+        const startVal = dateStart.value;
+        const endVal = dateEnd.value;
+
+        const filtered = allAssets.filter(asset => {
+            const sn = asset.serial_number.toLowerCase();
+            const brand = (asset.products?.brand || '').toLowerCase();
+            const model = (asset.products?.model_name || '').toLowerCase();
+            const client = (asset.clients?.name || '').toLowerCase();
+            const status = (asset.status || '').toLowerCase();
+            const assetDate = asset.created_at.split('T')[0];
+
+            // 1. 날짜 필터
+            if (startVal && assetDate < startVal) return false;
+            if (endVal && assetDate > endVal) return false;
+
+            // 2. 검색어 필터
+            if (!keyword) return true; // 검색어 없으면 통과
+
+            if (filterType === 'serial') return sn.includes(keyword);
+            if (filterType === 'model') return model.includes(keyword) || brand.includes(keyword);
+            if (filterType === 'client') return client.includes(keyword);
+            
+            // 전체 검색
+            return sn.includes(keyword) || model.includes(keyword) || client.includes(keyword) || status.includes(keyword);
+        });
+
+        renderList(filtered);
+    }
+
+    // 조회 버튼
+    if(btnSearchApply) {
+        btnSearchApply.addEventListener('click', filterAssets);
+    }
+
+    // 엔터키 검색
+    if(searchInput) {
+        searchInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') filterAssets();
+        });
+    }
+
+    // 초기화 버튼
+    if(btnSearchReset) {
+        btnSearchReset.addEventListener('click', () => {
+            searchInput.value = '';
+            searchFilter.value = 'all';
+            dateStart.value = '';
+            dateEnd.value = '';
+            renderList(allAssets);
+        });
     }
 
     // --- 새 모델 버튼 토글 ---
@@ -327,26 +385,6 @@ export async function init() {
                     loadAssets();
                 }
             }
-        });
-    }
-
-    if(searchInput) {
-        searchInput.addEventListener('keyup', () => {
-            const keyword = searchInput.value.toLowerCase();
-            const filterType = searchFilter.value;
-            const filtered = allAssets.filter(asset => {
-                const sn = asset.serial_number.toLowerCase();
-                const brand = (asset.products?.brand || '').toLowerCase();
-                const model = (asset.products?.model_name || '').toLowerCase();
-                const client = (asset.clients?.name || '').toLowerCase();
-                const status = (asset.status || '').toLowerCase(); 
-
-                if (filterType === 'serial') return sn.includes(keyword);
-                if (filterType === 'model') return model.includes(keyword) || brand.includes(keyword);
-                if (filterType === 'client') return client.includes(keyword);
-                return sn.includes(keyword) || model.includes(keyword) || client.includes(keyword) || status.includes(keyword);
-            });
-            renderList(filtered);
         });
     }
 }
