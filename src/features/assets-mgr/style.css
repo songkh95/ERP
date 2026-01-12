@@ -2,7 +2,7 @@
    1. 레이아웃 & 공통 컨테이너
    ========================================= */
 .assets-page {
-    padding: 20px;
+    padding: 0px;
     font-family: 'Pretendard', sans-serif; /* 기본 폰트 권장 */
 }
 
@@ -13,19 +13,35 @@
     font-weight: 700;
 }
 
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
+.assets-wrapper {
+    width: 100%;        /* 화면 꽉 채우기 */
+    padding: 20px;      /* 적당한 여백 */
+    box-sizing: border-box;
+    /* margin: 0 auto;  <-- 이거 안 씀 (가운데 정렬 해제) */
+    /* max-width: 1200px; <-- 이거 안 씀 (너비 제한 해제) */
+}
+
+/* 탭 내용 영역도 꽉 차게 */
+#tab-content-area {
+    width: 100%;
 }
 
 /* 카드 박스 (흰색 배경 패널) */
+.machines-tab-content,
+.consumables-tab-content,
+.parts-tab-content {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* 카드 제한 풀기 */
 .card {
+    width: 100%;
     background: #fff;
-    border: 1px solid #e0e0e0;
     border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    padding: 25px;
+    /* max-width: 1200px;  <-- 이 줄이 있다면 반드시 삭제! */
+    /* margin: 0 auto;     <-- 이 줄이 있다면 반드시 삭제! */
 }
 
 .page-title-area {

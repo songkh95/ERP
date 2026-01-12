@@ -203,3 +203,18 @@ input:focus, select:focus { border-color: #007bff; outline: none; }
     margin-bottom: 0 !important; /* 기존 마진 제거 */
     display: flex; align-items: center; gap: 3px;
 }
+
+.service-wrapper {
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* 카드도 꽉 차게 */
+.card {
+    width: 100%;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    /* max-width, margin: 0 auto 금지! */
+}

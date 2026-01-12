@@ -1,6 +1,6 @@
 export async function render() {
     return `
-    <div class="container">
+    <div class="service-wrapper">
         <div class="card">
             <div class="page-title-area">
                 <h3><i class='bx bx-list-check'></i> A/S 및 방문 일지 현황</h3>

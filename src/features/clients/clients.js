@@ -2,49 +2,54 @@ import { supabase } from '../../common/db.js';
 import { loadCSS } from '../../common/utils.js';
 
 // ============================================================
-//  1. [Render] HTML 구조
+//  1. [Render] HTML 구조 연결
 // ============================================================
 export { render } from './clients.view.js';
 
 // ============================================================
-//  2. [Init] 기능 로직
+//  2. [Init] 기능 로직 시작
 // ============================================================
 export async function init() {
-    // loadCSS('./src/features/clients/style.css'); 
-
-    // --- DOM 요소 선택 ---
+    
+    // --- DOM 요소 선택 (통합) ---
     const modal = document.getElementById('client-modal');
+    const formPanel = document.getElementById('form-panel');
+    const formTitle = document.getElementById('form-title');
+    
+    // 버튼
     const btnAddClient = document.getElementById('btn-add-client'); 
     const btnCancel = document.getElementById('btn-cancel'); 
     const btnSave = document.getElementById('btn-save');
-    const formTitle = document.getElementById('form-title');
-    const formPanel = document.getElementById('form-panel'); 
-    
+    const btnExcelExport = document.getElementById('btn-excel-export');
+    const btnExcelImport = document.getElementById('btn-excel-import');
+    const inpExcelFile = document.getElementById('inp-excel-file');
+
     // 리스트 & 검색
     const ul = document.getElementById('client-list-ul');
     const searchInput = document.getElementById('search-input');
     const countSpan = document.getElementById('total-count');
 
-    // [그룹 1] 기본 정보
+    // [섹션 1] 기본 정보
     const inpName = document.getElementById('inp-name');
     const inpCode = document.getElementById('inp-code');
-    const inpAddress = document.getElementById('inp-address'); // ★ [추가] 주소 필드
+    const inpEmail = document.getElementById('inp-email'); // ★ [신규] 이메일
+    const inpAddress = document.getElementById('inp-address');
     const inpContact = document.getElementById('inp-contact');
     const inpRecipient = document.getElementById('inp-recipient');
     const inpDept = document.getElementById('inp-dept');
 
-    // [그룹 2] 계약 정보
+    // [섹션 2] 계약 정보
     const inpContractType = document.getElementById('inp-contract-type');
     const inpContractDate = document.getElementById('inp-contract-date');
     const inpStartDate = document.getElementById('inp-start-date');
     const inpEndDate = document.getElementById('inp-end-date');
     const inpCancelDate = document.getElementById('inp-cancel-date');
 
-    // [그룹 3] 청구 정보
+    // [섹션 3] 청구 정보
     const inpBillMethod = document.getElementById('inp-bill-method');
     const inpBillDay = document.getElementById('inp-bill-day');
 
-    // [그룹 4] 기기 관리
+    // [섹션 4] 기기 관리
     const groupAssets = document.getElementById('group-assets');
     const msgSaveFirst = document.getElementById('msg-save-first');
     const miniAssetUl = document.getElementById('mini-asset-list');
@@ -57,8 +62,18 @@ export async function init() {
     const selStockAsset = document.getElementById('sel-stock-asset');
     const btnAddStock = document.getElementById('btn-add-stock');
     
+    // [신규 기기 등록 - 계약 정보 필드] ★ [신규]
     const selNewModelId = document.getElementById('sel-new-model-id');
     const inpNewSerial = document.getElementById('inp-new-serial');
+    
+    const inpRentalCost = document.getElementById('inp-rental-cost');
+    const inpAssetStart = document.getElementById('inp-asset-start');
+    const inpAssetEnd = document.getElementById('inp-asset-end');
+    const inpBaseBw = document.getElementById('inp-base-bw');
+    const inpOverBw = document.getElementById('inp-over-bw');
+    const inpBaseCol = document.getElementById('inp-base-col');
+    const inpOverCol = document.getElementById('inp-over-col');
+    
     const btnCreateAsset = document.getElementById('btn-create-asset');
 
     let editingId = null; 
@@ -96,13 +111,13 @@ export async function init() {
                 : '<span style="color:#ccc; font-size:0.8rem;">기기 없음</span>';
 
             const showDate = (d) => d || '-';
-            const address = client.address || '-'; // ★ [추가] 주소 표시용
+            const address = client.address || '-'; 
 
             return `
-            <li class="client-item" style="border-bottom:1px solid #f3f4f6; padding:20px 0;">
+            <li class="client-item">
                 <div class="client-summary" data-id="${client.id}" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <i class='bx bx-chevron-down' style="color:#2563eb; font-size:1.2rem;"></i>
+                        <i class='bx bx-chevron-down toggle-icon' style="color:#2563eb; font-size:1.2rem;"></i>
                         <div>
                             <strong style="font-size:1.05rem; color:#111827;">${client.name}</strong>
                             <span style="font-size:0.8rem; color:#6b7280; margin-left:5px;">(${client.client_code || '미정'})</span>
@@ -113,7 +128,7 @@ export async function init() {
                     </div>
                 </div>
                 
-                <div class="client-details" style="display:none; margin-top:15px; background:#f9fafb; padding:20px; border-radius:8px;">
+                <div class="client-details" style="display:none; margin-top:15px;">
                     <div class="detail-compact-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:15px; font-size:0.9rem;">
                         <div style="grid-column: 1 / -1; border-bottom:1px dashed #e5e7eb; padding-bottom:10px; margin-bottom:5px;">
                             <label style="color:#9ca3af; font-size:0.75rem;">주소</label> 
@@ -122,6 +137,7 @@ export async function init() {
 
                         <div><label style="color:#9ca3af; font-size:0.75rem;">담당자</label> <div style="font-weight:500;">${client.contact_person || '-'}</div></div>
                         <div><label style="color:#9ca3af; font-size:0.75rem;">연락처</label> <div>${client.recipient || '-'}</div></div>
+                        <div><label style="color:#9ca3af; font-size:0.75rem;">이메일</label> <div>${client.email || '-'}</div></div>
                         <div><label style="color:#9ca3af; font-size:0.75rem;">부서/장소</label> <div>${client.department || '-'}</div></div>
                         
                         <div><label style="color:#9ca3af; font-size:0.75rem;">청구방법</label> <div>${client.billing_method || '-'}</div></div>
@@ -150,14 +166,14 @@ export async function init() {
         const filtered = allClients.filter(c => 
             (c.name||'').toLowerCase().includes(keyword) || 
             (c.client_code||'').toLowerCase().includes(keyword) ||
-            (c.address||'').toLowerCase().includes(keyword) || // ★ [추가] 주소로도 검색 가능
+            (c.address||'').toLowerCase().includes(keyword) || 
             (c.contact_person||'').toLowerCase().includes(keyword)
         );
         renderList(filtered);
     });
 
     // ============================================================
-    //  4. 폼 제어 (모달 Open/Close) & CRUD
+    //  4. 폼 제어 (모달 & CRUD)
     // ============================================================
 
     async function generateNextCode() {
@@ -216,7 +232,7 @@ export async function init() {
     if(btnAddClient) btnAddClient.addEventListener('click', () => openModal(false));
     if(btnCancel) btnCancel.addEventListener('click', closeModal);
 
-    // [저장 버튼] 클릭
+    // [저장 버튼] 클릭 (이메일 추가됨)
     if(btnSave) {
         btnSave.addEventListener('click', async () => {
             if (!inpName.value) return alert('거래처명은 필수입니다!');
@@ -224,7 +240,8 @@ export async function init() {
             const payload = {
                 name: inpName.value,
                 client_code: inpCode.value,
-                address: inpAddress.value, // ★ [추가] 주소 저장
+                email: inpEmail.value, // ★ 저장
+                address: inpAddress.value,
                 contact_person: inpContact.value,
                 recipient: inpRecipient.value,
                 department: inpDept.value,
@@ -267,7 +284,15 @@ export async function init() {
         const summary = e.target.closest('.client-summary');
         if (summary) {
             const detail = summary.nextElementSibling;
-            detail.style.display = detail.style.display === 'none' ? 'block' : 'none';
+            const icon = summary.querySelector('.toggle-icon'); 
+            
+            if (detail.style.display === 'none') {
+                detail.style.display = 'block';
+                if(icon) icon.style.transform = 'rotate(180deg)'; 
+            } else {
+                detail.style.display = 'none';
+                if(icon) icon.style.transform = 'rotate(0deg)'; 
+            }
             return;
         }
 
@@ -281,7 +306,8 @@ export async function init() {
             if (data) {
                 inpName.value = data.name || '';
                 inpCode.value = data.client_code || '';
-                inpAddress.value = data.address || ''; // ★ [추가] 수정 시 주소 불러오기
+                inpEmail.value = data.email || ''; // ★ 불러오기
+                inpAddress.value = data.address || '';
                 inpContact.value = data.contact_person || '';
                 inpRecipient.value = data.recipient || '';
                 inpDept.value = data.department || '';
@@ -310,7 +336,7 @@ export async function init() {
     });
 
     // ============================================================
-    //  5. 기기 관리 (Asset Management) 로직 (기존과 동일)
+    //  5. 기기 관리 (Asset Management) 로직
     // ============================================================
     tabStock.addEventListener('click', () => {
         tabStock.classList.add('active'); tabStock.classList.replace('btn-secondary', 'btn-primary');
@@ -337,6 +363,10 @@ export async function init() {
                     <div>
                         <span style="font-weight:bold; color:#333;">${asset.products?.model_name || '모델미상'}</span>
                         <span style="font-size:0.85rem; color:#666; margin-left:5px;">(S/N: ${asset.serial_number})</span>
+                        <div style="font-size:0.75rem; color:#888;">
+                            월 ${asset.rental_cost?.toLocaleString()}원 / 
+                            흑백기본:${asset.base_count_bw} / 칼라기본:${asset.base_count_col}
+                        </div>
                     </div>
                     <button class="btn-unlink" data-id="${asset.id}" style="font-size:0.75rem; color:red; border:1px solid #fee2e2; background:white; cursor:pointer; padding:2px 8px; border-radius:4px;">반납</button>
                 </li>
@@ -373,22 +403,40 @@ export async function init() {
             (data || []).map(p => `<option value="${p.id}">[${p.brand}] ${p.model_name}</option>`).join('');
     }
 
+    // ★ [핵심 수정] 신규 기기 등록 (계약 정보 포함)
     btnCreateAsset.addEventListener('click', async () => {
         const modelId = selNewModelId.value;
         const serial = inpNewSerial.value;
         if (!modelId || !serial) return alert('모델과 시리얼 번호를 입력하세요.');
 
+        const parseNum = (val) => val ? parseInt(val) : 0;
+
         const { error } = await supabase.from('assets').insert({
             product_id: modelId,
             serial_number: serial,
             client_id: editingId,
-            status: '사용중'
+            status: '사용중',
+
+            // 계약 상세 정보 저장
+            rental_cost: parseNum(inpRentalCost.value),
+            contract_start_date: inpAssetStart.value || null,
+            contract_end_date: inpAssetEnd.value || null,
+            base_count_bw: parseNum(inpBaseBw.value),
+            overage_cost_bw: parseNum(inpOverBw.value),
+            base_count_col: parseNum(inpBaseCol.value),
+            overage_cost_col: parseNum(inpOverCol.value)
         });
 
         if (error) alert('등록 실패: ' + error.message);
         else {
-            alert('새 기기가 등록되고 배정되었습니다.');
+            alert('기기 및 계약 정보가 등록되었습니다.');
+            // 초기화
             inpNewSerial.value = '';
+            inpRentalCost.value = '';
+            inpBaseBw.value = ''; inpOverBw.value = '';
+            inpBaseCol.value = ''; inpOverCol.value = '';
+            inpAssetStart.value = ''; inpAssetEnd.value = '';
+            
             refreshAssets();
         }
     });
@@ -399,5 +447,162 @@ export async function init() {
             loadStockAssets();
             loadData();
         }
+    }
+
+    // ============================================================
+    //  6. 엑셀 내보내기/가져오기 기능
+    // ============================================================
+
+    if(btnExcelExport) {
+        btnExcelExport.addEventListener('click', () => {
+            if (allClients.length === 0) return alert('내보낼 데이터가 없습니다.');
+
+            const excelData = allClients.map(c => ({
+                '고객번호': c.client_code,
+                '거래처명': c.name,
+                '주소': c.address,
+                '담당자': c.contact_person,
+                '수취인명': c.recipient,
+                '이메일': c.email, // ★ 이메일 추가
+                '부서/장소': c.department,
+                '계약형태': c.contract_type,
+                '계약일': c.contract_date,
+                '계약개시일': c.start_date,
+                '계약만기일': c.end_date,
+                '해약일자': c.cancel_date,
+                '청구방법': c.billing_method,
+                '청구일': c.billing_day
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(excelData);
+            ws['!cols'] = [
+                { wch: 10 }, { wch: 25 }, { wch: 30 }, { wch: 15 }, 
+                { wch: 15 }, { wch: 25 }, { wch: 15 }, { wch: 10 }, 
+                { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, 
+                { wch: 10 }, { wch: 10 }
+            ];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "거래처목록");
+            const dateStr = new Date().toISOString().slice(0,10).replace(/-/g, "");
+            XLSX.writeFile(wb, `거래처목록_${dateStr}.xlsx`);
+        });
+    }
+
+    if(btnExcelImport) {
+        btnExcelImport.addEventListener('click', () => {
+            inpExcelFile.click();
+        });
+    }
+
+    if(inpExcelFile) {
+        function ExcelDateToJSDate(serial) {
+            if (!serial) return null;
+            if (typeof serial === 'string') return serial; 
+            const utc_days  = Math.floor(serial - 25569);
+            const utc_value = utc_days * 86400;                                      
+            const date_info = new Date(utc_value * 1000);
+            const year = date_info.getFullYear();
+            const month = String(date_info.getMonth() + 1).padStart(2, '0');
+            const day = String(date_info.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function parseCodeNumber(codeStr) {
+            if (!codeStr) return 0;
+            const parts = codeStr.split('-');
+            if (parts.length > 1) {
+                const num = parseInt(parts[1], 10);
+                return isNaN(num) ? 0 : num;
+            }
+            return 0;
+        }
+
+        inpExcelFile.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if(!confirm('선택한 엑셀 파일을 DB에 등록하시겠습니까?')) {
+                inpExcelFile.value = ''; 
+                return;
+            }
+
+            const reader = new FileReader();
+            
+            reader.onload = async (evt) => {
+                try {
+                    const data = evt.target.result;
+                    const workbook = XLSX.read(data, { type: 'binary' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                    if (jsonData.length === 0) {
+                        alert('데이터가 없습니다.');
+                        return;
+                    }
+
+                    const { data: lastData } = await supabase
+                        .from('clients')
+                        .select('client_code')
+                        .not('client_code', 'is', null)
+                        .order('client_code', { ascending: false })
+                        .limit(1);
+
+                    let maxNum = 0;
+                    if (lastData && lastData.length > 0) {
+                        maxNum = parseCodeNumber(lastData[0].client_code);
+                    }
+                    jsonData.forEach(row => {
+                        const code = row['고객번호'];
+                        if (code) {
+                            const num = parseCodeNumber(code);
+                            if (num > maxNum) maxNum = num;
+                        }
+                    });
+
+                    const payload = jsonData.map(row => {
+                        let code = row['고객번호'];
+                        if (!code) {
+                            maxNum++; 
+                            code = `C-${String(maxNum).padStart(3, '0')}`;
+                        }
+
+                        return {
+                            client_code: code,
+                            name: row['거래처명'],
+                            address: row['주소'] || null,
+                            contact_person: row['담당자'] || null,
+                            recipient: row['수취인명'] || null,
+                            email: row['이메일'] || null, // ★ 이메일 매핑
+                            department: row['부서/장소'] || null,
+                            contract_type: row['계약형태'] || null,
+                            contract_date: ExcelDateToJSDate(row['계약일']), 
+                            start_date: ExcelDateToJSDate(row['계약개시일']),
+                            end_date: ExcelDateToJSDate(row['계약만기일']),
+                            cancel_date: ExcelDateToJSDate(row['해약일자']),
+                            billing_method: row['청구방법'] || null,
+                            billing_day: row['청구일'] || null
+                        };
+                    }).filter(item => item.name); 
+
+                    const { error } = await supabase.from('clients').insert(payload);
+
+                    if (error) {
+                        console.error(error);
+                        alert('등록 실패: ' + error.message);
+                    } else {
+                        alert(`✅ 총 ${payload.length}건 등록 완료!`);
+                        loadData();
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('오류 발생: ' + err.message);
+                } finally {
+                    inpExcelFile.value = '';
+                }
+            };
+            reader.readAsBinaryString(file);
+        });
     }
 }

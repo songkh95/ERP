@@ -1,6 +1,28 @@
 export async function render() {
     return `
-    <div class="container">
+    <section class="client-page">
+        <h1>📋 거래처 관리<span id="total-count" style="font-size:0.5em; background:#e3f2fd; color:#007bff; padding:2px 10px; border-radius:15px; vertical-align:middle; margin-left:5px;">0</span></h1>
+        
+        <div class="control-panel" style="display:flex; justify-content:space-between; margin-bottom:15px; align-items:center;">
+            
+            <div style="display:flex; gap:10px;">
+                <button id="btn-toggle-form" class="btn-primary">➕ 신규 거래처 등록</button>
+                
+                <button id="btn-excel-export" class="btn-secondary" style="color:#107c41; border-color:#107c41;">
+                    <i class='bx bx-download'></i> 엑셀 다운
+                </button>
+                <button id="btn-excel-import" class="btn-secondary" style="color:#107c41; border-color:#107c41;">
+                    <i class='bx bx-upload'></i> 엑셀 업로드
+                </button>
+                <input type="file" id="inp-excel-file" accept=".xlsx, .xls" style="display:none;" />
+            </div>
+
+            <div class="search-panel-simple" style="display:flex; gap:5px;">
+                <input type="text" id="search-input" placeholder="거래처명 또는 담당자 검색..." style="padding:8px; border:1px solid #ccc; border-radius:4px; width:250px;">
+            </div>
+        </div>
+
+    <div class="client-wrapper-full">
         <div class="card">
             <div class="page-title-area">
                 <h3><i class='bx bx-buildings'></i> 거래처 목록 <span id="total-count" class="badge blue" style="font-size:0.8rem; margin-left:10px;">0</span></h3>
@@ -25,7 +47,9 @@ export async function render() {
                     <h3 id="form-title"><i class='bx bx-edit'></i> 거래처 상세 정보</h3>
                 </div>
                 
-                <div id="form-panel"> <div style="margin-bottom: 20px;">
+                <div id="form-panel"> 
+                    
+                    <div style="margin-bottom: 20px;">
                         <h4 style="font-size:0.9rem; color:#6b7280; border-bottom:1px solid #eee; padding-bottom:5px; margin-bottom:10px;">🏢 기본 정보</h4>
                         
                         <div class="grid-2">
@@ -37,6 +61,11 @@ export async function render() {
                                 <label>고객번호</label>
                                 <input type="text" id="inp-code" class="form-input" placeholder="자동 생성" readonly style="background:#f9fafb;">
                             </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>이메일 (계산서/명세서 수신)</label>
+                            <input type="email" id="inp-email" class="form-input" placeholder="example@company.com">
                         </div>
 
                         <div class="form-group">
@@ -122,12 +151,59 @@ export async function render() {
                             <button id="btn-add-stock" class="btn-primary" style="font-size:0.8rem;">배정</button>
                         </div>
 
-                        <div id="panel-new" class="hidden" style="display:flex; gap:5px;">
-                            <select id="sel-new-model-id" class="form-input" style="flex:1; font-size:0.85rem;">
-                                <option value="">모델 선택</option>
-                            </select>
-                            <input type="text" id="inp-new-serial" class="form-input" placeholder="S/N" style="width:100px; font-size:0.85rem;">
-                            <button id="btn-create-asset" class="btn-primary" style="font-size:0.8rem;">생성</button>
+                        <div id="panel-new" class="hidden" style="background:white; padding:15px; border:1px solid #bae6fd; border-radius:6px;">
+                            <div style="font-size:0.9rem; font-weight:bold; color:#0369a1; margin-bottom:10px; border-bottom:1px dashed #bae6fd; padding-bottom:5px;">
+                                기기 정보 및 임대 조건 설정
+                            </div>
+
+                            <div class="grid-2" style="margin-bottom:10px;">
+                                <div class="field">
+                                    <label>모델 선택</label>
+                                    <select id="sel-new-model-id" class="form-input"><option>로딩중...</option></select>
+                                </div>
+                                <div class="field">
+                                    <label>Serial No.</label>
+                                    <input type="text" id="inp-new-serial" class="form-input" placeholder="S/N 입력">
+                                </div>
+                            </div>
+
+                            <div class="grid-3" style="margin-bottom:10px;">
+                                <div class="field">
+                                    <label>월 기본료(원)</label>
+                                    <input type="number" id="inp-rental-cost" class="form-input" placeholder="0" style="text-align:right;">
+                                </div>
+                                <div class="field">
+                                    <label>계약 시작일</label>
+                                    <input type="date" id="inp-asset-start" class="form-input">
+                                </div>
+                                <div class="field">
+                                    <label>계약 만료일</label>
+                                    <input type="date" id="inp-asset-end" class="form-input">
+                                </div>
+                            </div>
+
+                            <div class="grid-4">
+                                <div class="field">
+                                    <label>흑백 기본매수</label>
+                                    <input type="number" id="inp-base-bw" class="form-input" placeholder="0" style="text-align:right;">
+                                </div>
+                                <div class="field">
+                                    <label>흑백 추가(장당)</label>
+                                    <input type="number" id="inp-over-bw" class="form-input" placeholder="0" style="text-align:right;">
+                                </div>
+                                <div class="field">
+                                    <label>칼라 기본매수</label>
+                                    <input type="number" id="inp-base-col" class="form-input" placeholder="0" style="text-align:right;">
+                                </div>
+                                <div class="field">
+                                    <label>칼라 추가(장당)</label>
+                                    <input type="number" id="inp-over-col" class="form-input" placeholder="0" style="text-align:right;">
+                                </div>
+                            </div>
+
+                            <button id="btn-create-asset" class="btn-primary" style="width:100%; margin-top:15px; padding:10px;">
+                                ✅ 기기 등록 및 조건 저장
+                            </button>
                         </div>
                     </div>
 
@@ -144,5 +220,6 @@ export async function render() {
             </div>
         </div>
     </div>
+    </section>
     `;
 }
