@@ -98,12 +98,20 @@ export async function init() {
 
 
     // --- 데이터 로드 함수들 ---
-    async function loadModels() {
+async function loadModels() {
         if(!selModel) return;
         const { data } = await supabase.from('products').select('*').order('brand', { ascending: true });
+        
         if (data) {
+            // ★ 중복 제거 로직 추가 (model_name 기준)
+            const uniqueProducts = data.filter((item, index, self) =>
+                index === self.findIndex((t) => (
+                    t.model_name === item.model_name
+                ))
+            );
+
             selModel.innerHTML = '<option value="">-- 모델 선택 --</option>' + 
-                data.map(p => `<option value="${p.id}">[${p.brand}] ${p.model_name} (${p.type})</option>`).join('');
+                uniqueProducts.map(p => `<option value="${p.id}">[${p.brand}] ${p.model_name} (${p.type})</option>`).join('');
         }
     }
 

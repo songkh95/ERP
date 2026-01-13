@@ -1,102 +1,46 @@
 export async function render() {
     return `
     <style>
-        /* [3단 레이아웃 구조] */
-        .saas-container {
-            display: grid;
-            grid-template-columns: 280px 5px 500px 5px 1fr; /* 중앙 패널 넓힘 */
-            height: calc(100vh - 70px);
-            background-color: #f3f4f6;
-            overflow: hidden;
-        }
-
-        /* 패널 공통 */
-        .panel {
-            background: white;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .panel-header {
-            height: 50px;
-            padding: 0 15px;
-            border-bottom: 1px solid #e5e7eb;
-            background: #fff;
-            flex-shrink: 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+        /* (기존 스타일 유지) */
+        .saas-container { display: grid; grid-template-columns: 280px 5px 500px 5px 1fr; height: calc(100vh - 70px); background-color: #f3f4f6; overflow: hidden; }
+        .panel { background: white; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        .panel-header { height: 50px; padding: 0 15px; border-bottom: 1px solid #e5e7eb; background: #fff; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
         .panel-title { font-weight: 700; color: #111827; font-size: 0.95rem; display:flex; gap:5px; align-items:center; }
         .panel-body { flex: 1; overflow-y: auto; padding: 0; }
-
-        /* 리사이저 */
-        .resizer {
-            background: #f3f4f6; cursor: col-resize; z-index: 10;
-            border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb;
-            transition: background 0.2s;
-        }
+        .resizer { background: #f3f4f6; cursor: col-resize; z-index: 10; border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; transition: background 0.2s; }
         .resizer:hover, .resizer.resizing { background: #3b82f6; border-color: #3b82f6; }
-
-        /* 좌측 리스트 */
-        .client-list-item {
-            padding: 15px; border-bottom: 1px solid #f3f4f6; cursor: pointer; transition: all 0.1s;
-        }
+        
+        .client-list-item { padding: 15px; border-bottom: 1px solid #f3f4f6; cursor: pointer; transition: all 0.1s; }
         .client-list-item:hover { background: #f9fafb; }
         .client-list-item.active { background: #eff6ff; border-left: 3px solid #2563eb; }
         .client-name { font-weight: 600; color: #374151; }
         .client-meta { font-size: 0.8rem; color: #9ca3af; margin-top: 4px; }
 
-        /* 중앙 상세 - 섹션 분리 */
-        .split-container {
-            display: flex; flex-direction: column; height: 100%;
-        }
-        .top-section {
-            flex-shrink: 0; padding: 20px; border-bottom: 5px solid #f3f4f6;
-        }
-        .bottom-section {
-            flex: 1; padding: 20px; overflow-y: auto; background: #fafafa;
-        }
-        
-        .section-header {
-            font-size: 0.9rem; font-weight: 700; color: #4b5563; margin-bottom: 15px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
+        .split-container { display: flex; flex-direction: column; height: 100%; }
+        .top-section { flex-shrink: 0; padding: 20px; border-bottom: 5px solid #f3f4f6; }
+        .bottom-section { flex: 1; padding: 20px; overflow-y: auto; background: #fafafa; }
+        .section-header { font-size: 0.9rem; font-weight: 700; color: #4b5563; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
 
-        /* 기기 계약 카드 스타일 */
-        .asset-card {
-            background: white; border: 1px solid #e5e7eb; border-radius: 8px;
-            padding: 15px; margin-bottom: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-            transition: transform 0.2s;
-        }
+        .asset-card { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); transition: transform 0.2s; }
         .asset-card:hover { border-color: #bfdbfe; transform: translateY(-2px); }
-        .asset-header {
-            display: flex; justify-content: space-between; border-bottom: 1px dashed #e5e7eb;
-            padding-bottom: 10px; margin-bottom: 10px;
-        }
+        .asset-header { display: flex; justify-content: space-between; border-bottom: 1px dashed #e5e7eb; padding-bottom: 10px; margin-bottom: 10px; }
         .asset-model { font-weight: bold; color: #0369a1; font-size: 1rem; }
         .asset-sn { font-size: 0.85rem; color: #64748b; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; }
         
-        .info-grid {
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 0.85rem;
-        }
-        .info-label { color: #9ca3af; font-size: 0.75rem; display: block; }
+        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 0.85rem; }
+        .info-label { color: #9ca3af; font-size: 0.75rem; display: block; margin-bottom: 2px; }
         .info-value { color: #374151; font-weight: 500; }
+        .info-full { grid-column: 1 / -1; margin-top: 5px; border-top: 1px dotted #eee; padding-top: 5px; }
 
-        /* 우측 사용량 테이블 */
         .usage-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
         .usage-table th { background: #f9fafb; padding: 8px; text-align: center; color: #6b7280; }
         .usage-table td { border-top: 1px solid #eee; padding: 8px; text-align: center; }
 
-        /* 스크롤바 */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
     </style>
 
     <div class="saas-container" id="layout-container">
-        
         <aside class="panel">
             <div class="panel-header">
                 <div class="panel-title"><i class='bx bx-list-ul'></i> 거래처 목록 <span id="total-count" class="badge blue" style="font-size:0.7rem; margin-left:5px;">0</span></div>
@@ -129,7 +73,6 @@ export async function render() {
             </div>
 
             <div id="client-detail-view" class="panel-body split-container hidden">
-                
                 <div class="top-section">
                     <div class="section-header">
                         <span>🏢 고객 기본 정보</span>
@@ -155,9 +98,7 @@ export async function render() {
                             <i class='bx bx-plus'></i> 기기 추가
                         </button>
                     </div>
-                    
-                    <div id="asset-list-container">
-                        </div>
+                    <div id="asset-list-container"></div>
                 </div>
             </div>
         </main>
@@ -172,24 +113,56 @@ export async function render() {
                 <div style="padding:20px; text-align:center; color:#999;">선택 대기중...</div>
             </div>
         </aside>
-
     </div>
 
     <div id="asset-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
-        <div class="card" style="width:600px; max-height:90vh; overflow-y:auto; padding:25px;">
+        <div class="card" style="width:650px; max-height:90vh; overflow-y:auto; padding:25px;">
             <h3 style="margin-bottom:20px; font-size:1.1rem; border-bottom:1px solid #eee; padding-bottom:10px;">
                 ✨ 기기 및 계약 상세 설정
             </h3>
             
-            <input type="hidden" id="hdn-asset-id"> <h4 style="font-size:0.9rem; color:#0369a1; margin-bottom:10px;">📌 기기 식별</h4>
+            <input type="hidden" id="hdn-asset-id">
+
+            <h4 style="font-size:0.9rem; color:#0369a1; margin-bottom:10px;">📌 기기 식별</h4>
+            
+            <div class="form-group" style="margin-bottom:15px;">
+                <label>모델 선택 <span style="color:red">*</span></label>
+                
+                <div id="box-select-model" style="display:flex; gap:5px;">
+                    <select id="sel-new-model" class="form-input" style="flex:1; font-weight:500;"></select>
+                    <button id="btn-show-new-model-form" class="btn-secondary" title="새 모델 등록" style="white-space:nowrap; padding:0 12px;">
+                        <i class='bx bx-plus'></i> 신규모델
+                    </button>
+                </div>
+
+                <div id="box-new-model-form" class="hidden" style="background:#f0f9ff; padding:15px; border:1px solid #bae6fd; border-radius:6px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px dashed #bae6fd; padding-bottom:5px;">
+                            <span style="font-weight:bold; color:#0369a1; font-size:0.9rem;">🆕 신규 모델 정보 입력</span>
+                            <button id="btn-cancel-new-model" class="btn-secondary" style="font-size:0.75rem; padding:2px 8px;">취소</button>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom:10px;">
+                        <label style="font-size:0.8rem; color:#666;">제조사</label>
+                        <input type="text" id="inp-new-maker" class="form-input" placeholder="예: 신도리코">
+                    </div>
+                    <div class="form-group" style="margin-bottom:10px;">
+                        <label style="font-size:0.8rem; color:#666;">모델명</label>
+                        <input type="text" id="inp-new-model-name" class="form-input" placeholder="예: N600">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:0.8rem; color:#666;">타입</label>
+                        <select id="sel-new-model-type" class="form-input">
+                            <option value="흑백">흑백</option>
+                            <option value="칼라">칼라</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
             <div class="grid-2">
                 <div class="form-group">
-                    <label>모델명</label>
-                    <select id="sel-new-model" class="form-input"></select>
-                </div>
-                <div class="form-group">
-                    <label>Serial No.</label>
-                    <input type="text" id="inp-new-serial" class="form-input">
+                    <label>Serial No. <span style="color:red">*</span></label>
+                    <input type="text" id="inp-new-serial" class="form-input" placeholder="S/N 입력 (필수)">
                 </div>
                 <div class="form-group">
                     <label>설치부서/장소</label>
@@ -197,7 +170,7 @@ export async function render() {
                 </div>
             </div>
 
-            <h4 style="font-size:0.9rem; color:#0369a1; margin:15px 0 10px;">📅 기간 및 청구 설정</h4>
+            <h4 style="font-size:0.9rem; color:#0369a1; margin:20px 0 10px; border-top:1px dashed #eee; padding-top:15px;">📅 기간 및 청구 설정</h4>
             <div class="grid-2">
                 <div class="form-group"><label>계약일자</label><input type="date" id="inp-con-date" class="form-input"></div>
                 <div class="form-group"><label>계약개시일</label><input type="date" id="inp-start-date" class="form-input"></div>
@@ -227,6 +200,11 @@ export async function render() {
                 <div class="form-group"><label>칼라 기본매수</label><input type="number" id="inp-base-col" class="form-input" style="text-align:right;"></div>
                 <div class="form-group"><label>흑백 추가(원)</label><input type="number" id="inp-over-bw" class="form-input" style="text-align:right;"></div>
                 <div class="form-group"><label>칼라 추가(원)</label><input type="number" id="inp-over-col" class="form-input" style="text-align:right;"></div>
+            </div>
+
+            <h4 style="font-size:0.9rem; color:#0369a1; margin:15px 0 10px;">📝 비고</h4>
+            <div class="form-group">
+                <textarea id="inp-memo" class="form-input" rows="2" placeholder="특이사항 입력..."></textarea>
             </div>
 
             <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:25px; border-top:1px solid #eee; padding-top:20px;">
