@@ -1,608 +1,480 @@
 import { supabase } from '../../common/db.js';
-import { loadCSS } from '../../common/utils.js';
-
-// ============================================================
-//  1. [Render] HTML 구조 연결
-// ============================================================
 export { render } from './clients.view.js';
 
-// ============================================================
-//  2. [Init] 기능 로직 시작
-// ============================================================
 export async function init() {
+    // --- DOM 요소 ---
+    const listContainer = document.getElementById('client-list-container');
+    const searchInput = document.getElementById('search-input');
+    const totalCount = document.getElementById('total-count');
     
-    // --- DOM 요소 선택 (통합) ---
-    const modal = document.getElementById('client-modal');
-    const formPanel = document.getElementById('form-panel');
-    const formTitle = document.getElementById('form-title');
+    // 뷰 전환
+    const emptyState = document.getElementById('empty-state');
+    const detailView = document.getElementById('client-detail-view');
     
-    // 버튼
-    const btnAddClient = document.getElementById('btn-add-client'); 
-    const btnCancel = document.getElementById('btn-cancel'); 
-    const btnSave = document.getElementById('btn-save');
+    // 기본 정보 폼
+    const inpName = document.getElementById('inp-name');
+    const inpCode = document.getElementById('inp-code');
+    const inpContact = document.getElementById('inp-contact');
+    const inpEmail = document.getElementById('inp-email');
+    const inpAddress = document.getElementById('inp-address');
+    const btnSaveClient = document.getElementById('btn-save-client');
+    const btnDeleteClient = document.getElementById('btn-delete-client');
+    
+    // 기기 리스트 및 모달
+    const assetListContainer = document.getElementById('asset-list-container');
+    const btnAddAssetModal = document.getElementById('btn-add-asset-modal');
+    const assetModal = document.getElementById('asset-modal');
+    const btnAssetSave = document.getElementById('btn-asset-save');
+    const btnAssetCancel = document.getElementById('btn-asset-cancel');
+
+    // 우측 패널
+    const usageContainer = document.getElementById('usage-container');
+
+    // 엑셀
     const btnExcelExport = document.getElementById('btn-excel-export');
     const btnExcelImport = document.getElementById('btn-excel-import');
     const inpExcelFile = document.getElementById('inp-excel-file');
 
-    // 리스트 & 검색
-    const ul = document.getElementById('client-list-ul');
-    const searchInput = document.getElementById('search-input');
-    const countSpan = document.getElementById('total-count');
-
-    // [섹션 1] 기본 정보
-    const inpName = document.getElementById('inp-name');
-    const inpCode = document.getElementById('inp-code');
-    const inpEmail = document.getElementById('inp-email'); // ★ [신규] 이메일
-    const inpAddress = document.getElementById('inp-address');
-    const inpContact = document.getElementById('inp-contact');
-    const inpRecipient = document.getElementById('inp-recipient');
-    const inpDept = document.getElementById('inp-dept');
-
-    // [섹션 2] 계약 정보
-    const inpContractType = document.getElementById('inp-contract-type');
-    const inpContractDate = document.getElementById('inp-contract-date');
-    const inpStartDate = document.getElementById('inp-start-date');
-    const inpEndDate = document.getElementById('inp-end-date');
-    const inpCancelDate = document.getElementById('inp-cancel-date');
-
-    // [섹션 3] 청구 정보
-    const inpBillMethod = document.getElementById('inp-bill-method');
-    const inpBillDay = document.getElementById('inp-bill-day');
-
-    // [섹션 4] 기기 관리
-    const groupAssets = document.getElementById('group-assets');
-    const msgSaveFirst = document.getElementById('msg-save-first');
-    const miniAssetUl = document.getElementById('mini-asset-list');
-
-    const tabStock = document.getElementById('tab-stock');
-    const tabNew = document.getElementById('tab-new');
-    const panelStock = document.getElementById('panel-stock');
-    const panelNew = document.getElementById('panel-new');
-
-    const selStockAsset = document.getElementById('sel-stock-asset');
-    const btnAddStock = document.getElementById('btn-add-stock');
-    
-    // [신규 기기 등록 - 계약 정보 필드] ★ [신규]
-    const selNewModelId = document.getElementById('sel-new-model-id');
-    const inpNewSerial = document.getElementById('inp-new-serial');
-    
-    const inpRentalCost = document.getElementById('inp-rental-cost');
-    const inpAssetStart = document.getElementById('inp-asset-start');
-    const inpAssetEnd = document.getElementById('inp-asset-end');
-    const inpBaseBw = document.getElementById('inp-base-bw');
-    const inpOverBw = document.getElementById('inp-over-bw');
-    const inpBaseCol = document.getElementById('inp-base-col');
-    const inpOverCol = document.getElementById('inp-over-col');
-    
-    const btnCreateAsset = document.getElementById('btn-create-asset');
-
-    let editingId = null; 
     let allClients = [];
+    let selectedClientId = null;
+    let productsList = []; // 모델명 리스트 캐싱
 
-    // 초기 실행
     loadData();
 
-    // ============================================================
-    //  3. 데이터 로드 및 렌더링
-    // ============================================================
-    
+    // =========================================================
+    // 1. 초기 데이터 로드
+    // =========================================================
     async function loadData() {
         const { data, error } = await supabase
             .from('clients')
-            .select(`*, assets (id, products (model_name))`)
-            .order('client_code', { ascending: true });
+            .select('*')
+            .order('name');
         
         if (error) return console.error(error);
         allClients = data;
-        renderList(allClients);
-    }
-
-    function renderList(list) {
-        if (countSpan) countSpan.innerText = list ? list.length : 0;
+        renderClientList(allClients);
         
-        if (!list || list.length === 0) {
-            ul.innerHTML = '<li style="padding:20px; text-align:center;">검색 결과가 없습니다.</li>';
+        // 제품 목록 미리 로드 (기기 등록용)
+        const prodRes = await supabase.from('products').select('*');
+        if(prodRes.data) productsList = prodRes.data;
+
+        // 선택 유지 or 첫번째 선택
+        if (selectedClientId) selectClient(selectedClientId);
+        else if (allClients.length > 0) selectClient(allClients[0].id);
+    }
+
+    function renderClientList(list) {
+        totalCount.innerText = list.length;
+        listContainer.innerHTML = '';
+        if (list.length === 0) {
+            listContainer.innerHTML = '<div style="padding:20px; text-align:center;">없음</div>';
             return;
         }
-
-        ul.innerHTML = list.map(client => {
-            const assetModels = client.assets && client.assets.length > 0
-                ? client.assets.map(a => `<span class="badge" style="background:#e0f2fe; color:#0369a1; margin-right:4px;">${a.products?.model_name}</span>`).join('')
-                : '<span style="color:#ccc; font-size:0.8rem;">기기 없음</span>';
-
-            const showDate = (d) => d || '-';
-            const address = client.address || '-'; 
-
-            return `
-            <li class="client-item">
-                <div class="client-summary" data-id="${client.id}" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <i class='bx bx-chevron-down toggle-icon' style="color:#2563eb; font-size:1.2rem;"></i>
-                        <div>
-                            <strong style="font-size:1.05rem; color:#111827;">${client.name}</strong>
-                            <span style="font-size:0.8rem; color:#6b7280; margin-left:5px;">(${client.client_code || '미정'})</span>
-                        </div>
-                    </div>
-                    <div style="text-align:right;">
-                        <span class="badge" style="background:#f3f4f6; color:#4b5563;">${client.contract_type || '미지정'}</span>
-                    </div>
-                </div>
-                
-                <div class="client-details" style="display:none; margin-top:15px;">
-                    <div class="detail-compact-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:15px; font-size:0.9rem;">
-                        <div style="grid-column: 1 / -1; border-bottom:1px dashed #e5e7eb; padding-bottom:10px; margin-bottom:5px;">
-                            <label style="color:#9ca3af; font-size:0.75rem;">주소</label> 
-                            <div style="font-weight:500;">${address}</div>
-                        </div>
-
-                        <div><label style="color:#9ca3af; font-size:0.75rem;">담당자</label> <div style="font-weight:500;">${client.contact_person || '-'}</div></div>
-                        <div><label style="color:#9ca3af; font-size:0.75rem;">연락처</label> <div>${client.recipient || '-'}</div></div>
-                        <div><label style="color:#9ca3af; font-size:0.75rem;">이메일</label> <div>${client.email || '-'}</div></div>
-                        <div><label style="color:#9ca3af; font-size:0.75rem;">부서/장소</label> <div>${client.department || '-'}</div></div>
-                        
-                        <div><label style="color:#9ca3af; font-size:0.75rem;">청구방법</label> <div>${client.billing_method || '-'}</div></div>
-                        <div><label style="color:#9ca3af; font-size:0.75rem;">계약일</label> <div>${showDate(client.contract_date)}</div></div>
-                        <div><label style="color:#9ca3af; font-size:0.75rem;">만기일</label> <div>${showDate(client.end_date)}</div></div>
-
-                        <div style="grid-column: 1 / -1; margin-top:5px;">
-                            <label style="color:#9ca3af; font-size:0.75rem; display:block; margin-bottom:5px;">보유 기기</label>
-                            <div>${assetModels}</div>
-                        </div>
-                    </div>
-
-                    <div style="text-align:right; margin-top:15px; padding-top:15px; border-top:1px dashed #e5e7eb;">
-                        <button class="btn-secondary btn-edit" data-id="${client.id}"><i class='bx bx-edit'></i> 수정 및 기기관리</button>
-                        <button class="btn-secondary btn-delete" data-id="${client.id}" style="color:#dc2626; border-color:#fee2e2;"><i class='bx bx-trash'></i> 삭제</button>
-                    </div>
-                </div>
-            </li>
+        list.forEach(c => {
+            const el = document.createElement('div');
+            el.className = 'client-list-item';
+            el.dataset.id = c.id;
+            if (c.id == selectedClientId) el.classList.add('active');
+            el.innerHTML = `
+                <div class="client-name">${c.name}</div>
+                <div class="client-meta">${c.client_code || '-'}</div>
             `;
-        }).join('');
-    }
-
-    // 검색 기능
-    searchInput.addEventListener('keyup', () => {
-        const keyword = searchInput.value.toLowerCase();
-        const filtered = allClients.filter(c => 
-            (c.name||'').toLowerCase().includes(keyword) || 
-            (c.client_code||'').toLowerCase().includes(keyword) ||
-            (c.address||'').toLowerCase().includes(keyword) || 
-            (c.contact_person||'').toLowerCase().includes(keyword)
-        );
-        renderList(filtered);
-    });
-
-    // ============================================================
-    //  4. 폼 제어 (모달 & CRUD)
-    // ============================================================
-
-    async function generateNextCode() {
-        const { data } = await supabase
-            .from('clients')
-            .select('client_code')
-            .not('client_code', 'is', null)
-            .order('client_code', { ascending: false })
-            .limit(1);
-
-        let nextNum = 1;
-        if (data && data.length > 0) {
-            const lastCode = data[0].client_code; 
-            const parts = lastCode.split('-');
-            if (parts.length > 1) {
-                const num = parseInt(parts[1]);
-                if (!isNaN(num)) nextNum = num + 1;
-            }
-        }
-        return `C-${String(nextNum).padStart(3, '0')}`;
-    }
-
-    function openModal(isEdit) {
-        modal.style.display = 'flex';
-        inpCode.readOnly = true;
-
-        if (isEdit) {
-            formTitle.innerHTML = "<i class='bx bx-edit'></i> 거래처 상세 정보 수정";
-            groupAssets.classList.remove('hidden');
-            msgSaveFirst.classList.add('hidden');
-            
-            loadClientAssets(editingId);
-            loadStockAssets();
-        } else {
-            formTitle.innerHTML = "<i class='bx bx-plus-circle'></i> 신규 거래처 등록";
-            groupAssets.classList.add('hidden');
-            msgSaveFirst.classList.remove('hidden');
-            
-            resetFormInputs();
-            generateNextCode().then(code => inpCode.value = code);
-        }
-    }
-
-    function closeModal() {
-        modal.style.display = 'none';
-        resetFormInputs();
-    }
-
-    function resetFormInputs() {
-        editingId = null;
-        formPanel.querySelectorAll('input').forEach(i => i.value = '');
-        formPanel.querySelectorAll('select').forEach(s => s.value = '');
-        miniAssetUl.innerHTML = '';
-    }
-
-    if(btnAddClient) btnAddClient.addEventListener('click', () => openModal(false));
-    if(btnCancel) btnCancel.addEventListener('click', closeModal);
-
-    // [저장 버튼] 클릭 (이메일 추가됨)
-    if(btnSave) {
-        btnSave.addEventListener('click', async () => {
-            if (!inpName.value) return alert('거래처명은 필수입니다!');
-
-            const payload = {
-                name: inpName.value,
-                client_code: inpCode.value,
-                email: inpEmail.value, // ★ 저장
-                address: inpAddress.value,
-                contact_person: inpContact.value,
-                recipient: inpRecipient.value,
-                department: inpDept.value,
-                
-                contract_type: inpContractType.value,
-                contract_date: inpContractDate.value || null,
-                start_date: inpStartDate.value || null,
-                end_date: inpEndDate.value || null,
-                cancel_date: inpCancelDate.value || null,
-                
-                billing_method: inpBillMethod.value,
-                billing_day: inpBillDay.value
-            };
-
-            let res;
-            if (editingId) {
-                res = await supabase.from('clients').update(payload).eq('id', editingId);
-            } else {
-                res = await supabase.from('clients').insert(payload);
-            }
-
-            if (res.error) {
-                if (res.error.code === '23505') {
-                    alert('❌ 중복된 번호입니다. 다시 시도해주세요.');
-                    generateNextCode().then(code => inpCode.value = code);
-                } else {
-                    alert('오류: ' + res.error.message);
-                }
-            } else {
-                alert('저장되었습니다.');
-                if(!editingId) closeModal();
-                loadData();
-            }
+            el.addEventListener('click', () => selectClient(c.id));
+            listContainer.appendChild(el);
         });
     }
 
-    // 리스트 클릭 (수정/삭제)
-    ul.addEventListener('click', async (e) => {
-        // 펼치기
-        const summary = e.target.closest('.client-summary');
-        if (summary) {
-            const detail = summary.nextElementSibling;
-            const icon = summary.querySelector('.toggle-icon'); 
-            
-            if (detail.style.display === 'none') {
-                detail.style.display = 'block';
-                if(icon) icon.style.transform = 'rotate(180deg)'; 
-            } else {
-                detail.style.display = 'none';
-                if(icon) icon.style.transform = 'rotate(0deg)'; 
-            }
+    // =========================================================
+    // 2. 고객 선택 & 상세 정보 로드
+    // =========================================================
+    async function selectClient(id) {
+        selectedClientId = id;
+        
+        // 리스트 하이라이트
+        document.querySelectorAll('.client-list-item').forEach(el => {
+            el.classList.toggle('active', el.dataset.id == id);
+        });
+
+        const client = allClients.find(c => c.id == id);
+        if (!client) return;
+
+        emptyState.classList.add('hidden');
+        detailView.classList.remove('hidden');
+
+        // [상단] 기본 정보 채우기
+        inpName.value = client.name;
+        inpCode.value = client.client_code;
+        inpContact.value = client.contact_person || '';
+        inpEmail.value = client.email || '';
+        inpAddress.value = client.address || '';
+
+        // [하단] 기기 목록 가져오기 (계약정보 포함)
+        loadAssets(id);
+
+        // [우측] 사용량 로드
+        loadUsage(id);
+    }
+
+    // 기기 목록 로드 및 렌더링
+async function loadAssets(clientId) {
+        assetListContainer.innerHTML = '<div style="color:#999; text-align:center;">로딩 중...</div>';
+        
+        const { data: assets } = await supabase
+            .from('assets')
+            .select('*, products(model_name)')
+            .eq('client_id', clientId)
+            .order('created_at');
+
+        if (!assets || assets.length === 0) {
+            assetListContainer.innerHTML = '<div style="padding:20px; text-align:center; color:#9ca3af;">등록된 기기가 없습니다.</div>';
             return;
         }
 
-        // 수정 버튼
-        const btnEdit = e.target.closest('.btn-edit');
-        if (btnEdit) {
-            const id = btnEdit.dataset.id;
-            editingId = id;
+        assetListContainer.innerHTML = '';
+        assets.forEach(asset => {
+            const card = document.createElement('div');
+            card.className = 'asset-card';
             
-            const { data } = await supabase.from('clients').select('*').eq('id', id).single();
-            if (data) {
-                inpName.value = data.name || '';
-                inpCode.value = data.client_code || '';
-                inpEmail.value = data.email || ''; // ★ 불러오기
-                inpAddress.value = data.address || '';
-                inpContact.value = data.contact_person || '';
-                inpRecipient.value = data.recipient || '';
-                inpDept.value = data.department || '';
-                
-                inpContractType.value = data.contract_type || '';
-                inpContractDate.value = data.contract_date || '';
-                inpStartDate.value = data.start_date || '';
-                inpEndDate.value = data.end_date || '';
-                inpCancelDate.value = data.cancel_date || '';
-                
-                inpBillMethod.value = data.billing_method || '';
-                inpBillDay.value = data.billing_day || '';
-
-                openModal(true);
-            }
-        }
-
-        // 삭제 버튼
-        const btnDelete = e.target.closest('.btn-delete');
-        if (btnDelete) {
-            if(confirm('정말 삭제하시겠습니까?')) {
-                await supabase.from('clients').delete().eq('id', btnDelete.dataset.id);
-                loadData();
-            }
-        }
-    });
-
-    // ============================================================
-    //  5. 기기 관리 (Asset Management) 로직
-    // ============================================================
-    tabStock.addEventListener('click', () => {
-        tabStock.classList.add('active'); tabStock.classList.replace('btn-secondary', 'btn-primary');
-        tabNew.classList.remove('active'); tabNew.classList.replace('btn-primary', 'btn-secondary');
-        panelStock.classList.remove('hidden'); panelNew.classList.add('hidden');
-    });
-
-    tabNew.addEventListener('click', () => {
-        tabNew.classList.add('active'); tabNew.classList.replace('btn-secondary', 'btn-primary');
-        tabStock.classList.remove('active'); tabStock.classList.replace('btn-primary', 'btn-secondary');
-        panelNew.classList.remove('hidden'); panelStock.classList.add('hidden');
-        loadProductModels();
-    });
-
-    async function loadClientAssets(clientId) {
-        miniAssetUl.innerHTML = '<li style="padding:10px;">로딩 중...</li>';
-        const { data } = await supabase.from('assets').select('*, products(brand, model_name)').eq('client_id', clientId);
+            // 날짜/금액 포맷 헬퍼
+            const showDate = (d) => d || '-';
+            const cost = (n) => n ? n.toLocaleString() : '0';
             
-        if (!data || data.length === 0) {
-            miniAssetUl.innerHTML = '<li style="color:#999; text-align:center; padding:10px;">현재 연결된 기기가 없습니다.</li>';
-        } else {
-            miniAssetUl.innerHTML = data.map(asset => `
-                <li style="display:flex; justify-content:space-between; align-items:center; padding:8px; border-bottom:1px solid #eee;">
+            // ★ [수정됨] 청구일 표시 로직 (말일/숫자/빈값 구분)
+            let billDayDisplay = '-';
+            if (asset.billing_day) {
+                // '말일'이면 '일' 안 붙임, 아니면 '일' 붙임
+                billDayDisplay = asset.billing_day === '말일' ? '말일' : `${asset.billing_day}일`;
+            }
+
+            card.innerHTML = `
+                <div class="asset-header">
                     <div>
-                        <span style="font-weight:bold; color:#333;">${asset.products?.model_name || '모델미상'}</span>
-                        <span style="font-size:0.85rem; color:#666; margin-left:5px;">(S/N: ${asset.serial_number})</span>
-                        <div style="font-size:0.75rem; color:#888;">
-                            월 ${asset.rental_cost?.toLocaleString()}원 / 
-                            흑백기본:${asset.base_count_bw} / 칼라기본:${asset.base_count_col}
-                        </div>
+                        <span class="asset-model">${asset.products?.model_name || 'Unknown'}</span>
+                        <span class="asset-sn">${asset.serial_number}</span>
                     </div>
-                    <button class="btn-unlink" data-id="${asset.id}" style="font-size:0.75rem; color:red; border:1px solid #fee2e2; background:white; cursor:pointer; padding:2px 8px; border-radius:4px;">반납</button>
-                </li>
-            `).join('');
-        }
-    }
+                    <button class="btn-edit-asset" data-id="${asset.id}" style="color:#2563eb; background:none; border:none; cursor:pointer; font-size:0.8rem;">
+                        <i class='bx bx-edit'></i> 수정
+                    </button>
+                </div>
+                
+                <div class="info-grid">
+                    <div><span class="info-label">설치부서</span> <span class="info-value">${asset.install_location || '-'}</span></div>
+                    
+                    <div><span class="info-label">청구방식</span> <span class="info-value">${asset.billing_method || '-'} / ${billDayDisplay}</span></div>
+                    
+                    <div><span class="info-label">계약일자</span> <span class="info-value">${showDate(asset.contract_date)}</span></div>
+                    <div><span class="info-label">만기일</span> <span class="info-value">${showDate(asset.contract_end_date)}</span></div>
+                    
+                    <div><span class="info-label">월 기본료</span> <span class="info-value">${cost(asset.rental_cost)}원</span></div>
+                    <div><span class="info-label">기본매수</span> <span class="info-value">BW:${cost(asset.base_count_bw)} / Col:${cost(asset.base_count_col)}</span></div>
+                </div>
+            `;
 
-    miniAssetUl.addEventListener('click', async (e) => {
-        if (e.target.classList.contains('btn-unlink')) {
-            if(!confirm('이 기기를 반납하시겠습니까? (재고로 이동됨)')) return;
-            await supabase.from('assets').update({ client_id: null, status: '재고' }).eq('id', e.target.dataset.id);
-            refreshAssets();
-        }
-    });
-
-    async function loadStockAssets() {
-        const { data } = await supabase.from('assets').select('id, serial_number, products(model_name)').is('client_id', null);
-        selStockAsset.innerHTML = '<option value="">-- 재고 기기 선택 --</option>' +
-            (data || []).map(a => `<option value="${a.id}">[${a.products?.model_name}] ${a.serial_number}</option>`).join('');
-    }
-
-    btnAddStock.addEventListener('click', async () => {
-        const assetId = selStockAsset.value;
-        if (!assetId) return alert('기기를 선택해주세요.');
-        await supabase.from('assets').update({ client_id: editingId, status: '사용중' }).eq('id', assetId);
-        alert('기기가 배정되었습니다.');
-        refreshAssets();
-    });
-
-    async function loadProductModels() {
-        if (selNewModelId.options.length > 1) return;
-        const { data } = await supabase.from('products').select('*').order('model_name');
-        selNewModelId.innerHTML = '<option value="">-- 모델 선택 --</option>' + 
-            (data || []).map(p => `<option value="${p.id}">[${p.brand}] ${p.model_name}</option>`).join('');
-    }
-
-    // ★ [핵심 수정] 신규 기기 등록 (계약 정보 포함)
-    btnCreateAsset.addEventListener('click', async () => {
-        const modelId = selNewModelId.value;
-        const serial = inpNewSerial.value;
-        if (!modelId || !serial) return alert('모델과 시리얼 번호를 입력하세요.');
-
-        const parseNum = (val) => val ? parseInt(val) : 0;
-
-        const { error } = await supabase.from('assets').insert({
-            product_id: modelId,
-            serial_number: serial,
-            client_id: editingId,
-            status: '사용중',
-
-            // 계약 상세 정보 저장
-            rental_cost: parseNum(inpRentalCost.value),
-            contract_start_date: inpAssetStart.value || null,
-            contract_end_date: inpAssetEnd.value || null,
-            base_count_bw: parseNum(inpBaseBw.value),
-            overage_cost_bw: parseNum(inpOverBw.value),
-            base_count_col: parseNum(inpBaseCol.value),
-            overage_cost_col: parseNum(inpOverCol.value)
+            card.querySelector('.btn-edit-asset').addEventListener('click', () => openAssetModal(asset));
+            assetListContainer.appendChild(card);
         });
+    }
 
-        if (error) alert('등록 실패: ' + error.message);
-        else {
-            alert('기기 및 계약 정보가 등록되었습니다.');
-            // 초기화
-            inpNewSerial.value = '';
-            inpRentalCost.value = '';
-            inpBaseBw.value = ''; inpOverBw.value = '';
-            inpBaseCol.value = ''; inpOverCol.value = '';
-            inpAssetStart.value = ''; inpAssetEnd.value = '';
+    // =========================================================
+    // 3. 기기 등록/수정 모달 로직
+    // =========================================================
+    function openAssetModal(asset = null) {
+        // 모달 초기화
+        document.getElementById('hdn-asset-id').value = asset ? asset.id : '';
+        document.getElementById('inp-new-serial').value = asset ? asset.serial_number : '';
+        document.getElementById('inp-asset-loc').value = asset ? asset.install_location || '' : '';
+        
+        document.getElementById('inp-con-date').value = asset ? asset.contract_date || '' : '';
+        document.getElementById('inp-start-date').value = asset ? asset.contract_start_date || '' : '';
+        document.getElementById('inp-end-date').value = asset ? asset.contract_end_date || '' : '';
+        document.getElementById('inp-cancel-date').value = asset ? asset.cancel_date || '' : '';
+        
+        document.getElementById('inp-asset-bill-method').value = asset ? asset.billing_method || '' : '';
+        document.getElementById('inp-asset-bill-day').value = asset ? asset.billing_day || '' : '';
+        
+        document.getElementById('inp-rental-cost').value = asset ? asset.rental_cost : '';
+        document.getElementById('inp-base-bw').value = asset ? asset.base_count_bw : '';
+        document.getElementById('inp-base-col').value = asset ? asset.base_count_col : '';
+        document.getElementById('inp-over-bw').value = asset ? asset.overage_cost_bw : '';
+        document.getElementById('inp-over-col').value = asset ? asset.overage_cost_col : '';
+
+        // 모델 셀렉트박스 채우기
+        const selModel = document.getElementById('sel-new-model');
+        selModel.innerHTML = productsList.map(p => 
+            `<option value="${p.id}" ${asset && asset.product_id == p.id ? 'selected' : ''}>${p.model_name}</option>`
+        ).join('');
+
+        assetModal.style.display = 'flex';
+    }
+
+btnAssetSave.addEventListener('click', async () => {
+        const assetId = document.getElementById('hdn-asset-id').value; // 수정일 경우 ID가 있음
+        const serial = document.getElementById('inp-new-serial').value.trim(); // 공백 제거
+        
+        // 1. 유효성 검사
+        if(!serial) return alert('Serial No.는 필수 입력 사항입니다.');
+
+        // 2. ★ 중복 검사 로직 추가 ★
+        // "입력한 시리얼 번호를 가진 기기가 있는지 찾아봐라"
+        const { data: duplicateCheck, error: checkError } = await supabase
+            .from('assets')
+            .select('id')
+            .eq('serial_number', serial)
+            .maybeSingle(); // 하나만 가져옴
+
+        if (duplicateCheck) {
+            // 중복된 기기가 발견됨
             
-            refreshAssets();
+            // A. 신규 등록인데 중복인 경우 -> 차단
+            if (!assetId) {
+                return alert(`❌ 이미 등록된 Serial No. 입니다. (${serial})`);
+            }
+            
+            // B. 수정 중인데, 검색된 기기가 '나(현재 수정중인 기기)'와 다른 경우 -> 차단
+            if (assetId && duplicateCheck.id != assetId) {
+                return alert(`❌ 이미 다른 기기에서 사용 중인 Serial No. 입니다.`);
+            }
+        }
+
+        // 3. 데이터 준비
+        const payload = {
+            client_id: selectedClientId,
+            product_id: document.getElementById('sel-new-model').value,
+            serial_number: serial,
+            install_location: document.getElementById('inp-asset-loc').value,
+            
+            contract_date: document.getElementById('inp-con-date').value || null,
+            contract_start_date: document.getElementById('inp-start-date').value || null,
+            contract_end_date: document.getElementById('inp-end-date').value || null,
+            cancel_date: document.getElementById('inp-cancel-date').value || null,
+            
+            billing_method: document.getElementById('inp-asset-bill-method').value,
+            billing_day: document.getElementById('inp-asset-bill-day').value,
+            
+            rental_cost: Number(document.getElementById('inp-rental-cost').value) || 0,
+            base_count_bw: Number(document.getElementById('inp-base-bw').value) || 0,
+            base_count_col: Number(document.getElementById('inp-base-col').value) || 0,
+            overage_cost_bw: Number(document.getElementById('inp-over-bw').value) || 0,
+            overage_cost_col: Number(document.getElementById('inp-over-col').value) || 0,
+            
+            status: '사용중'
+        };
+
+        // 4. 저장 실행
+        let res;
+        if (assetId) {
+            // 수정 (Update)
+            res = await supabase.from('assets').update(payload).eq('id', assetId);
+        } else {
+            // 신규 (Insert)
+            res = await supabase.from('assets').insert(payload);
+        }
+
+        // 5. 결과 처리
+        if (res.error) {
+            // 혹시 JS 검사를 뚫고 DB 제약조건에 걸렸을 경우 (코드 23505)
+            if (res.error.code === '23505') {
+                alert('❌ 중복된 Serial No. 입니다.');
+            } else {
+                alert('저장 실패: ' + res.error.message);
+            }
+        } else {
+            alert('✅ 저장되었습니다.');
+            assetModal.style.display = 'none';
+            loadAssets(selectedClientId); // 리스트 갱신
         }
     });
 
-    function refreshAssets() {
-        if (editingId) {
-            loadClientAssets(editingId);
-            loadStockAssets();
-            loadData();
-        }
-    }
+    // =========================================================
+    // 4. 이벤트 핸들러 (기본정보 저장, 엑셀, 리사이저 등)
+    // =========================================================
+    
+    // 기본정보 저장
+    btnSaveClient.addEventListener('click', async () => {
+        if (!selectedClientId) return;
+        const payload = {
+            name: inpName.value,
+            contact_person: inpContact.value,
+            email: inpEmail.value,
+            address: inpAddress.value
+        };
+        await supabase.from('clients').update(payload).eq('id', selectedClientId);
+        alert('기본 정보가 수정되었습니다.');
+        loadData(); // 리스트 이름 등 갱신
+    });
 
-    // ============================================================
-    //  6. 엑셀 내보내기/가져오기 기능
-    // ============================================================
+    // 검색
+    searchInput.addEventListener('keyup', (e) => {
+        const key = e.target.value.toLowerCase();
+        const filtered = allClients.filter(c => c.name.toLowerCase().includes(key));
+        renderClientList(filtered);
+    });
 
+    // 모달 제어
+    btnAddAssetModal.addEventListener('click', () => {
+        if(!selectedClientId) return alert('고객을 먼저 선택하세요.');
+        openAssetModal(null);
+    });
+    btnAssetCancel.addEventListener('click', () => assetModal.style.display = 'none');
+
+    // 엑셀 기능 (유지)
     if(btnExcelExport) {
         btnExcelExport.addEventListener('click', () => {
             if (allClients.length === 0) return alert('내보낼 데이터가 없습니다.');
-
+            
+            // ★ 수정: DB에 있는 컬럼만 내보내기
             const excelData = allClients.map(c => ({
                 '고객번호': c.client_code,
                 '거래처명': c.name,
-                '주소': c.address,
-                '담당자': c.contact_person,
-                '수취인명': c.recipient,
-                '이메일': c.email, // ★ 이메일 추가
-                '부서/장소': c.department,
-                '계약형태': c.contract_type,
-                '계약일': c.contract_date,
-                '계약개시일': c.start_date,
-                '계약만기일': c.end_date,
-                '해약일자': c.cancel_date,
-                '청구방법': c.billing_method,
-                '청구일': c.billing_day
+                '대표자/담당자': c.contact_person,
+                '이메일': c.email,
+                '주소': c.address
             }));
-
+            
             const ws = XLSX.utils.json_to_sheet(excelData);
-            ws['!cols'] = [
-                { wch: 10 }, { wch: 25 }, { wch: 30 }, { wch: 15 }, 
-                { wch: 15 }, { wch: 25 }, { wch: 15 }, { wch: 10 }, 
-                { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, 
-                { wch: 10 }, { wch: 10 }
-            ];
-
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "거래처목록");
-            const dateStr = new Date().toISOString().slice(0,10).replace(/-/g, "");
-            XLSX.writeFile(wb, `거래처목록_${dateStr}.xlsx`);
+            XLSX.writeFile(wb, `거래처목록_${new Date().toISOString().slice(0,10)}.xlsx`);
         });
     }
 
+    // [가져오기]
     if(btnExcelImport) {
-        btnExcelImport.addEventListener('click', () => {
-            inpExcelFile.click();
-        });
+        btnExcelImport.addEventListener('click', () => inpExcelFile.click());
     }
 
     if(inpExcelFile) {
-        function ExcelDateToJSDate(serial) {
-            if (!serial) return null;
-            if (typeof serial === 'string') return serial; 
-            const utc_days  = Math.floor(serial - 25569);
-            const utc_value = utc_days * 86400;                                      
-            const date_info = new Date(utc_value * 1000);
-            const year = date_info.getFullYear();
-            const month = String(date_info.getMonth() + 1).padStart(2, '0');
-            const day = String(date_info.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
-
-        function parseCodeNumber(codeStr) {
-            if (!codeStr) return 0;
-            const parts = codeStr.split('-');
-            if (parts.length > 1) {
-                const num = parseInt(parts[1], 10);
-                return isNaN(num) ? 0 : num;
-            }
-            return 0;
-        }
-
         inpExcelFile.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
-            if(!confirm('선택한 엑셀 파일을 DB에 등록하시겠습니까?')) {
+            if(!confirm('엑셀 파일의 [거래처 기본 정보]를 등록하시겠습니까?\n(계약/청구 정보는 기기 등록 시 별도로 설정해야 합니다.)')) {
                 inpExcelFile.value = ''; 
                 return;
             }
 
             const reader = new FileReader();
-            
             reader.onload = async (evt) => {
                 try {
                     const data = evt.target.result;
                     const workbook = XLSX.read(data, { type: 'binary' });
-                    const firstSheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[firstSheetName];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    const sheetName = workbook.SheetNames[0];
+                    const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
                     if (jsonData.length === 0) {
                         alert('데이터가 없습니다.');
                         return;
                     }
 
-                    const { data: lastData } = await supabase
-                        .from('clients')
-                        .select('client_code')
-                        .not('client_code', 'is', null)
-                        .order('client_code', { ascending: false })
-                        .limit(1);
-
-                    let maxNum = 0;
-                    if (lastData && lastData.length > 0) {
-                        maxNum = parseCodeNumber(lastData[0].client_code);
-                    }
-                    jsonData.forEach(row => {
-                        const code = row['고객번호'];
-                        if (code) {
-                            const num = parseCodeNumber(code);
-                            if (num > maxNum) maxNum = num;
-                        }
-                    });
-
+                    // ★ 수정: DB 'clients' 테이블에 실제 존재하는 컬럼만 매핑
                     const payload = jsonData.map(row => {
-                        let code = row['고객번호'];
-                        if (!code) {
-                            maxNum++; 
-                            code = `C-${String(maxNum).padStart(3, '0')}`;
-                        }
-
+                        // 엑셀 컬럼명과 매칭 (없으면 null 처리)
                         return {
-                            client_code: code,
-                            name: row['거래처명'],
-                            address: row['주소'] || null,
-                            contact_person: row['담당자'] || null,
-                            recipient: row['수취인명'] || null,
-                            email: row['이메일'] || null, // ★ 이메일 매핑
-                            department: row['부서/장소'] || null,
-                            contract_type: row['계약형태'] || null,
-                            contract_date: ExcelDateToJSDate(row['계약일']), 
-                            start_date: ExcelDateToJSDate(row['계약개시일']),
-                            end_date: ExcelDateToJSDate(row['계약만기일']),
-                            cancel_date: ExcelDateToJSDate(row['해약일자']),
-                            billing_method: row['청구방법'] || null,
-                            billing_day: row['청구일'] || null
+                            client_code: row['고객번호'] || row['코드'], // 코드 자동생성 로직이 필요하면 추가 가능
+                            name: row['거래처명'] || row['상호명'],
+                            contact_person: row['대표자/담당자'] || row['담당자'],
+                            email: row['이메일'],
+                            address: row['주소']
                         };
-                    }).filter(item => item.name); 
+                    }).filter(r => r.name); // 이름 없는 행 제외
 
+                    // DB 저장 (clients 테이블만)
                     const { error } = await supabase.from('clients').insert(payload);
 
                     if (error) {
-                        console.error(error);
-                        alert('등록 실패: ' + error.message);
+                        // 고객번호 중복 등 에러 처리
+                        if (error.code === '23505') alert('중복된 고객번호가 있거나 이미 등록된 거래처입니다.');
+                        else alert('등록 실패: ' + error.message);
                     } else {
-                        alert(`✅ 총 ${payload.length}건 등록 완료!`);
-                        loadData();
+                        alert(`✅ 총 ${payload.length}건의 거래처 기본 정보가 등록되었습니다.\n기기 및 계약 정보는 상세 화면에서 추가해주세요.`);
+                        loadData(); // 리스트 갱신
                     }
                 } catch (err) {
                     console.error(err);
-                    alert('오류 발생: ' + err.message);
+                    alert('엑셀 처리 중 오류 발생: ' + err.message);
                 } finally {
-                    inpExcelFile.value = '';
+                    inpExcelFile.value = ''; // 초기화
                 }
             };
             reader.readAsBinaryString(file);
         });
+    }
+
+    // 우측 사용량 로드 (이전과 동일 로직)
+    async function loadUsage(clientId) {
+        usageContainer.innerHTML = '<div style="padding:20px; text-align:center;">로딩 중...</div>';
+        const { data: assets } = await supabase.from('assets').select('id').eq('client_id', clientId);
+        if (!assets || assets.length === 0) {
+            usageContainer.innerHTML = '<div style="text-align:center; padding:20px; color:#999;">기기 없음</div>';
+            return;
+        }
+        
+        const ids = assets.map(a => a.id);
+        const { data: readings } = await supabase.from('meter_readings')
+            .select('*, assets(products(model_name))')
+            .in('asset_id', ids)
+            .order('reading_date', {ascending:false})
+            .limit(20);
+
+        if (!readings || readings.length === 0) {
+            usageContainer.innerHTML = '<div style="text-align:center; padding:20px; color:#999;">기록 없음</div>';
+            return;
+        }
+
+        // 테이블 그리기
+        usageContainer.innerHTML = `
+            <table class="usage-table">
+                <thead><tr><th>모델</th><th>날짜</th><th>흑백</th><th>칼라</th></tr></thead>
+                <tbody>
+                    ${readings.map(r => `
+                        <tr>
+                            <td style="text-align:left;">${r.assets?.products?.model_name}</td>
+                            <td>${r.reading_date}</td>
+                            <td>${r.reading_bw?.toLocaleString()}</td>
+                            <td>${r.reading_col?.toLocaleString()}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    // ★ 리사이저 로직 (그대로 유지)
+    enableResizing();
+    function enableResizing() {
+        const container = document.getElementById('layout-container');
+        const leftResizer = document.getElementById('resizer-left');
+        const rightResizer = document.getElementById('resizer-right');
+        
+        let leftW = 280, midW = 500;
+
+        // 왼쪽 핸들
+        leftResizer.addEventListener('mousedown', initDragLeft);
+        function initDragLeft(e) {
+            window.addEventListener('mousemove', doDragLeft);
+            window.addEventListener('mouseup', stopDragLeft);
+        }
+        function doDragLeft(e) {
+            const newW = e.clientX - container.offsetLeft;
+            if(newW > 150 && newW < 400) { leftW = newW; updateGrid(); }
+        }
+        function stopDragLeft() { window.removeEventListener('mousemove', doDragLeft); window.removeEventListener('mouseup', stopDragLeft); }
+
+        // 오른쪽 핸들
+        rightResizer.addEventListener('mousedown', initDragRight);
+        function initDragRight(e) {
+            window.addEventListener('mousemove', doDragRight);
+            window.addEventListener('mouseup', stopDragRight);
+        }
+        function doDragRight(e) {
+            // 왼쪽 패널 + 핸들(5) + 중간 패널 = 현재 마우스 X
+            const newMidW = e.clientX - container.offsetLeft - leftW - 5;
+            if(newMidW > 300 && newMidW < 800) { midW = newMidW; updateGrid(); }
+        }
+        function stopDragRight() { window.removeEventListener('mousemove', doDragRight); window.removeEventListener('mouseup', stopDragRight); }
+
+        function updateGrid() {
+            container.style.gridTemplateColumns = `${leftW}px 5px ${midW}px 5px 1fr`;
+        }
     }
 }

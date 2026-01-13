@@ -1,225 +1,239 @@
 export async function render() {
     return `
-    <section class="client-page">
-        <h1>📋 거래처 관리<span id="total-count" style="font-size:0.5em; background:#e3f2fd; color:#007bff; padding:2px 10px; border-radius:15px; vertical-align:middle; margin-left:5px;">0</span></h1>
+    <style>
+        /* [3단 레이아웃 구조] */
+        .saas-container {
+            display: grid;
+            grid-template-columns: 280px 5px 500px 5px 1fr; /* 중앙 패널 넓힘 */
+            height: calc(100vh - 70px);
+            background-color: #f3f4f6;
+            overflow: hidden;
+        }
+
+        /* 패널 공통 */
+        .panel {
+            background: white;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .panel-header {
+            height: 50px;
+            padding: 0 15px;
+            border-bottom: 1px solid #e5e7eb;
+            background: #fff;
+            flex-shrink: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-title { font-weight: 700; color: #111827; font-size: 0.95rem; display:flex; gap:5px; align-items:center; }
+        .panel-body { flex: 1; overflow-y: auto; padding: 0; }
+
+        /* 리사이저 */
+        .resizer {
+            background: #f3f4f6; cursor: col-resize; z-index: 10;
+            border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb;
+            transition: background 0.2s;
+        }
+        .resizer:hover, .resizer.resizing { background: #3b82f6; border-color: #3b82f6; }
+
+        /* 좌측 리스트 */
+        .client-list-item {
+            padding: 15px; border-bottom: 1px solid #f3f4f6; cursor: pointer; transition: all 0.1s;
+        }
+        .client-list-item:hover { background: #f9fafb; }
+        .client-list-item.active { background: #eff6ff; border-left: 3px solid #2563eb; }
+        .client-name { font-weight: 600; color: #374151; }
+        .client-meta { font-size: 0.8rem; color: #9ca3af; margin-top: 4px; }
+
+        /* 중앙 상세 - 섹션 분리 */
+        .split-container {
+            display: flex; flex-direction: column; height: 100%;
+        }
+        .top-section {
+            flex-shrink: 0; padding: 20px; border-bottom: 5px solid #f3f4f6;
+        }
+        .bottom-section {
+            flex: 1; padding: 20px; overflow-y: auto; background: #fafafa;
+        }
         
-        <div class="control-panel" style="display:flex; justify-content:space-between; margin-bottom:15px; align-items:center;">
-            
-            <div style="display:flex; gap:10px;">
-                <button id="btn-toggle-form" class="btn-primary">➕ 신규 거래처 등록</button>
-                
-                <button id="btn-excel-export" class="btn-secondary" style="color:#107c41; border-color:#107c41;">
-                    <i class='bx bx-download'></i> 엑셀 다운
-                </button>
-                <button id="btn-excel-import" class="btn-secondary" style="color:#107c41; border-color:#107c41;">
-                    <i class='bx bx-upload'></i> 엑셀 업로드
-                </button>
-                <input type="file" id="inp-excel-file" accept=".xlsx, .xls" style="display:none;" />
-            </div>
+        .section-header {
+            font-size: 0.9rem; font-weight: 700; color: #4b5563; margin-bottom: 15px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
 
-            <div class="search-panel-simple" style="display:flex; gap:5px;">
-                <input type="text" id="search-input" placeholder="거래처명 또는 담당자 검색..." style="padding:8px; border:1px solid #ccc; border-radius:4px; width:250px;">
-            </div>
-        </div>
+        /* 기기 계약 카드 스타일 */
+        .asset-card {
+            background: white; border: 1px solid #e5e7eb; border-radius: 8px;
+            padding: 15px; margin-bottom: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+            transition: transform 0.2s;
+        }
+        .asset-card:hover { border-color: #bfdbfe; transform: translateY(-2px); }
+        .asset-header {
+            display: flex; justify-content: space-between; border-bottom: 1px dashed #e5e7eb;
+            padding-bottom: 10px; margin-bottom: 10px;
+        }
+        .asset-model { font-weight: bold; color: #0369a1; font-size: 1rem; }
+        .asset-sn { font-size: 0.85rem; color: #64748b; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; }
+        
+        .info-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 0.85rem;
+        }
+        .info-label { color: #9ca3af; font-size: 0.75rem; display: block; }
+        .info-value { color: #374151; font-weight: 500; }
 
-    <div class="client-wrapper-full">
-        <div class="card">
-            <div class="page-title-area">
-                <h3><i class='bx bx-buildings'></i> 거래처 목록 <span id="total-count" class="badge blue" style="font-size:0.8rem; margin-left:10px;">0</span></h3>
-                <button id="btn-add-client" class="btn-primary">
-                    <i class='bx bx-plus'></i> 신규 등록
-                </button>
-            </div>
-            
-            <div style="margin-bottom: 20px; position: relative;">
-                <i class='bx bx-search' style="position:absolute; left:12px; top:11px; color:#9ca3af;"></i>
-                <input type="text" id="search-input" class="form-input" style="padding-left: 35px;" placeholder="검색어 입력 (업체명, 주소, 담당자 등)">
-            </div>
+        /* 우측 사용량 테이블 */
+        .usage-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        .usage-table th { background: #f9fafb; padding: 8px; text-align: center; color: #6b7280; }
+        .usage-table td { border-top: 1px solid #eee; padding: 8px; text-align: center; }
 
-            <ul id="client-list-ul" class="client-list">
-                <li style="padding: 40px; text-align: center; color: #9ca3af;">데이터를 불러오는 중입니다...</li>
-            </ul>
-        </div>
+        /* 스크롤바 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    </style>
 
-        <div id="client-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:999; justify-content:center; align-items:center;">
-            <div class="card" style="width:800px; max-width:90%; max-height:90vh; overflow-y:auto; margin:0; animation: slideDown 0.3s ease;">
-                <div class="page-title-area">
-                    <h3 id="form-title"><i class='bx bx-edit'></i> 거래처 상세 정보</h3>
+    <div class="saas-container" id="layout-container">
+        
+        <aside class="panel">
+            <div class="panel-header">
+                <div class="panel-title"><i class='bx bx-list-ul'></i> 거래처 목록 <span id="total-count" class="badge blue" style="font-size:0.7rem; margin-left:5px;">0</span></div>
+                <button id="btn-add-client" class="btn-primary" style="padding:4px 8px; font-size:0.8rem;">+ 등록</button>
+            </div>
+            <div style="padding:10px; border-bottom:1px solid #e5e7eb;">
+                <input type="text" id="search-input" class="form-input" placeholder="검색..." style="width:100%;">
+            </div>
+            <div id="client-list-container" class="panel-body">
+                <div style="padding:20px; text-align:center; color:#999;">로딩 중...</div>
+            </div>
+        </aside>
+
+        <div class="resizer" id="resizer-left"></div>
+
+        <main class="panel">
+            <div class="panel-header">
+                <div class="panel-title"><i class='bx bx-id-card'></i> 상세 정보</div>
+                <div style="display:flex; gap:5px;">
+                    <button id="btn-excel-export" class="btn-secondary" title="내보내기" style="padding:6px;"><i class='bx bx-download'></i></button>
+                    <button id="btn-excel-import" class="btn-secondary" title="가져오기" style="padding:6px;"><i class='bx bx-upload'></i></button>
+                    <input type="file" id="inp-excel-file" accept=".xlsx, .xls" style="display:none;" />
+                    <button id="btn-save-client" class="btn-primary" style="font-size:0.8rem;"><i class='bx bx-check'></i> 기본정보 저장</button>
                 </div>
+            </div>
+
+            <div id="empty-state" style="text-align:center; padding-top:150px; color:#9ca3af;">
+                <i class='bx bx-mouse-alt' style="font-size:3rem; margin-bottom:10px;"></i>
+                <p>거래처를 선택하세요.</p>
+            </div>
+
+            <div id="client-detail-view" class="panel-body split-container hidden">
                 
-                <div id="form-panel"> 
+                <div class="top-section">
+                    <div class="section-header">
+                        <span>🏢 고객 기본 정보</span>
+                        <button id="btn-delete-client" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:0.8rem;">
+                            <i class='bx bx-trash'></i> 거래처 삭제
+                        </button>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group"><label>거래처명</label><input type="text" id="inp-name" class="form-input"></div>
+                        <div class="form-group"><label>고객번호</label><input type="text" id="inp-code" class="form-input" readonly style="background:#f9fafb;"></div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group"><label>담당자</label><input type="text" id="inp-contact" class="form-input"></div>
+                        <div class="form-group"><label>이메일</label><input type="email" id="inp-email" class="form-input"></div>
+                    </div>
+                    <div class="form-group"><label>주소</label><input type="text" id="inp-address" class="form-input"></div>
+                </div>
+
+                <div class="bottom-section">
+                    <div class="section-header">
+                        <span>🖨️ 등록된 기계별 계약 정보</span>
+                        <button id="btn-add-asset-modal" class="btn-secondary" style="font-size:0.75rem; padding:4px 8px;">
+                            <i class='bx bx-plus'></i> 기기 추가
+                        </button>
+                    </div>
                     
-                    <div style="margin-bottom: 20px;">
-                        <h4 style="font-size:0.9rem; color:#6b7280; border-bottom:1px solid #eee; padding-bottom:5px; margin-bottom:10px;">🏢 기본 정보</h4>
-                        
-                        <div class="grid-2">
-                            <div class="form-group">
-                                <label>거래처명 <span style="color:red">*</span></label>
-                                <input type="text" id="inp-name" class="form-input" placeholder="(주)상호명">
-                            </div>
-                            <div class="form-group">
-                                <label>고객번호</label>
-                                <input type="text" id="inp-code" class="form-input" placeholder="자동 생성" readonly style="background:#f9fafb;">
-                            </div>
+                    <div id="asset-list-container">
                         </div>
-
-                        <div class="form-group">
-                            <label>이메일 (계산서/명세서 수신)</label>
-                            <input type="email" id="inp-email" class="form-input" placeholder="example@company.com">
-                        </div>
-
-                        <div class="form-group">
-                            <label>주소</label>
-                            <input type="text" id="inp-address" class="form-input" placeholder="주소 입력 (예: 서울시 강남구...)">
-                        </div>
-
-                        <div class="grid-2">
-                            <div class="form-group">
-                                <label>담당자</label>
-                                <input type="text" id="inp-contact" class="form-input" placeholder="담당자 성함">
-                            </div>
-                            <div class="form-group">
-                                <label>연락처</label>
-                                <input type="text" id="inp-recipient" class="form-input" placeholder="연락처">
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>수취부서 (설치장소)</label>
-                            <input type="text" id="inp-dept" class="form-input" placeholder="예: 2층 총무팀">
-                        </div>
-                    </div>
-
-                    <div style="margin-bottom: 20px;">
-                        <h4 style="font-size:0.9rem; color:#6b7280; border-bottom:1px solid #eee; padding-bottom:5px; margin-bottom:10px;">📅 계약 정보</h4>
-                        
-                        <div class="form-group">
-                            <label>계약형태</label>
-                            <select id="inp-contract-type" class="form-input">
-                                <option value="">선택하세요</option>
-                                <option value="임대">임대 (렌탈)</option>
-                                <option value="판매">판매 (매매)</option>
-                                <option value="유지보수">유지보수</option>
-                            </select>
-                        </div>
-
-                        <div class="grid-2">
-                            <div class="form-group"><label>계약일자</label><input type="date" id="inp-contract-date" class="form-input"></div>
-                            <div class="form-group"><label>개시일</label><input type="date" id="inp-start-date" class="form-input"></div>
-                            <div class="form-group"><label>만료일</label><input type="date" id="inp-end-date" class="form-input"></div>
-                            <div class="form-group"><label>해약일</label><input type="date" id="inp-cancel-date" class="form-input"></div>
-                        </div>
-                    </div>
-
-                    <div style="margin-bottom: 20px;">
-                        <h4 style="font-size:0.9rem; color:#6b7280; border-bottom:1px solid #eee; padding-bottom:5px; margin-bottom:10px;">💰 청구 정보</h4>
-                        <div class="grid-2">
-                            <div class="form-group">
-                                <label>청구방법</label>
-                                <select id="inp-bill-method" class="form-input">
-                                    <option value="">선택하세요</option>
-                                    <option value="월청구">월청구 (후불)</option>
-                                    <option value="선청구">선청구 (선불)</option>
-                                    <option value="수시청구">수시청구</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>청구일</label>
-                                <input type="text" id="inp-bill-day" class="form-input" placeholder="예: 매월 25일">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="group-assets" class="hidden" style="margin-bottom: 20px; background:#f0f9ff; padding:15px; border-radius:8px;">
-                        <h4 style="font-size:0.9rem; color:#0369a1; border-bottom:1px solid #bae6fd; padding-bottom:5px; margin-bottom:10px;">
-                            🖨️ 보유 기기 관리
-                        </h4>
-
-                        <ul id="mini-asset-list" style="list-style:none; padding:0; margin-bottom:15px; background:white; border-radius:4px; border:1px solid #bae6fd;">
-                            <li style="padding:10px; color:#999; text-align:center;">로딩 중...</li>
-                        </ul>
-
-                        <div style="display:flex; gap:10px; margin-bottom:10px;">
-                            <button id="tab-stock" class="btn-secondary active" style="font-size:0.8rem; padding:5px 10px;">📦 재고에서 추가</button>
-                            <button id="tab-new" class="btn-secondary" style="font-size:0.8rem; padding:5px 10px;">✨ 신규 등록</button>
-                        </div>
-
-                        <div id="panel-stock" style="display:flex; gap:5px;">
-                            <select id="sel-stock-asset" class="form-input" style="flex:1; font-size:0.85rem;">
-                                <option value="">-- 재고 선택 --</option>
-                            </select>
-                            <button id="btn-add-stock" class="btn-primary" style="font-size:0.8rem;">배정</button>
-                        </div>
-
-                        <div id="panel-new" class="hidden" style="background:white; padding:15px; border:1px solid #bae6fd; border-radius:6px;">
-                            <div style="font-size:0.9rem; font-weight:bold; color:#0369a1; margin-bottom:10px; border-bottom:1px dashed #bae6fd; padding-bottom:5px;">
-                                기기 정보 및 임대 조건 설정
-                            </div>
-
-                            <div class="grid-2" style="margin-bottom:10px;">
-                                <div class="field">
-                                    <label>모델 선택</label>
-                                    <select id="sel-new-model-id" class="form-input"><option>로딩중...</option></select>
-                                </div>
-                                <div class="field">
-                                    <label>Serial No.</label>
-                                    <input type="text" id="inp-new-serial" class="form-input" placeholder="S/N 입력">
-                                </div>
-                            </div>
-
-                            <div class="grid-3" style="margin-bottom:10px;">
-                                <div class="field">
-                                    <label>월 기본료(원)</label>
-                                    <input type="number" id="inp-rental-cost" class="form-input" placeholder="0" style="text-align:right;">
-                                </div>
-                                <div class="field">
-                                    <label>계약 시작일</label>
-                                    <input type="date" id="inp-asset-start" class="form-input">
-                                </div>
-                                <div class="field">
-                                    <label>계약 만료일</label>
-                                    <input type="date" id="inp-asset-end" class="form-input">
-                                </div>
-                            </div>
-
-                            <div class="grid-4">
-                                <div class="field">
-                                    <label>흑백 기본매수</label>
-                                    <input type="number" id="inp-base-bw" class="form-input" placeholder="0" style="text-align:right;">
-                                </div>
-                                <div class="field">
-                                    <label>흑백 추가(장당)</label>
-                                    <input type="number" id="inp-over-bw" class="form-input" placeholder="0" style="text-align:right;">
-                                </div>
-                                <div class="field">
-                                    <label>칼라 기본매수</label>
-                                    <input type="number" id="inp-base-col" class="form-input" placeholder="0" style="text-align:right;">
-                                </div>
-                                <div class="field">
-                                    <label>칼라 추가(장당)</label>
-                                    <input type="number" id="inp-over-col" class="form-input" placeholder="0" style="text-align:right;">
-                                </div>
-                            </div>
-
-                            <button id="btn-create-asset" class="btn-primary" style="width:100%; margin-top:15px; padding:10px;">
-                                ✅ 기기 등록 및 조건 저장
-                            </button>
-                        </div>
-                    </div>
-
-                    <div id="msg-save-first" style="text-align:center; color:#6b7280; padding:20px; background:#f9fafb; border-radius:8px; margin-bottom:20px;">
-                        <i class='bx bx-info-circle'></i> 거래처를 먼저 저장하면 기기를 등록할 수 있습니다.
-                    </div>
-
-                    <div style="display:flex; gap:10px; justify-content:flex-end; border-top:1px solid #eee; padding-top:20px;">
-                        <button id="btn-save" class="btn-primary" style="padding: 10px 20px;">저장하기</button>
-                        <button id="btn-cancel" class="btn-secondary" style="padding: 10px 20px;">닫기</button>
-                    </div>
-
                 </div>
+            </div>
+        </main>
+
+        <div class="resizer" id="resizer-right"></div>
+
+        <aside class="panel" style="background:#f9fafb;">
+            <div class="panel-header">
+                <div class="panel-title"><i class='bx bx-bar-chart-alt-2'></i> 사용량 (Accounting)</div>
+            </div>
+            <div id="usage-container" class="panel-body" style="padding:15px;">
+                <div style="padding:20px; text-align:center; color:#999;">선택 대기중...</div>
+            </div>
+        </aside>
+
+    </div>
+
+    <div id="asset-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+        <div class="card" style="width:600px; max-height:90vh; overflow-y:auto; padding:25px;">
+            <h3 style="margin-bottom:20px; font-size:1.1rem; border-bottom:1px solid #eee; padding-bottom:10px;">
+                ✨ 기기 및 계약 상세 설정
+            </h3>
+            
+            <input type="hidden" id="hdn-asset-id"> <h4 style="font-size:0.9rem; color:#0369a1; margin-bottom:10px;">📌 기기 식별</h4>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>모델명</label>
+                    <select id="sel-new-model" class="form-input"></select>
+                </div>
+                <div class="form-group">
+                    <label>Serial No.</label>
+                    <input type="text" id="inp-new-serial" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>설치부서/장소</label>
+                    <input type="text" id="inp-asset-loc" class="form-input" placeholder="예: 2층 로비">
+                </div>
+            </div>
+
+            <h4 style="font-size:0.9rem; color:#0369a1; margin:15px 0 10px;">📅 기간 및 청구 설정</h4>
+            <div class="grid-2">
+                <div class="form-group"><label>계약일자</label><input type="date" id="inp-con-date" class="form-input"></div>
+                <div class="form-group"><label>계약개시일</label><input type="date" id="inp-start-date" class="form-input"></div>
+                <div class="form-group"><label>계약만기일</label><input type="date" id="inp-end-date" class="form-input"></div>
+                <div class="form-group"><label>해약일자</label><input type="date" id="inp-cancel-date" class="form-input"></div>
+            </div>
+            <div class="grid-2" style="margin-top:10px;">
+                <div class="form-group">
+                    <label>청구방법</label>
+                    <select id="inp-asset-bill-method" class="form-input">
+                        <option value="">선택</option>
+                        <option value="월청구">월청구</option>
+                        <option value="선청구">선청구</option>
+                        <option value="수시청구">수시청구</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>청구일</label>
+                    <input type="text" id="inp-asset-bill-day" class="form-input" placeholder="예: 매월 25일">
+                </div>
+            </div>
+
+            <h4 style="font-size:0.9rem; color:#0369a1; margin:15px 0 10px;">💰 요금 조건</h4>
+            <div class="grid-3">
+                <div class="form-group"><label>월 기본료</label><input type="number" id="inp-rental-cost" class="form-input" style="text-align:right;"></div>
+                <div class="form-group"><label>흑백 기본매수</label><input type="number" id="inp-base-bw" class="form-input" style="text-align:right;"></div>
+                <div class="form-group"><label>칼라 기본매수</label><input type="number" id="inp-base-col" class="form-input" style="text-align:right;"></div>
+                <div class="form-group"><label>흑백 추가(원)</label><input type="number" id="inp-over-bw" class="form-input" style="text-align:right;"></div>
+                <div class="form-group"><label>칼라 추가(원)</label><input type="number" id="inp-over-col" class="form-input" style="text-align:right;"></div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:25px; border-top:1px solid #eee; padding-top:20px;">
+                <button id="btn-asset-cancel" class="btn-secondary">취소</button>
+                <button id="btn-asset-save" class="btn-primary" style="padding:10px 20px;">저장 완료</button>
             </div>
         </div>
     </div>
-    </section>
     `;
 }
