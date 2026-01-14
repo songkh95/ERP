@@ -7,10 +7,12 @@
 └── /src
     ├── /common           # 공통 도구함
     │   ├── db.js         # Supabase 연결
-    │   ├── utils.js      # 날짜 변환 등 헬퍼 함수
-    │   └── ui.js         # 공통 UI (모달 등)
+    │   └── utils.js      # 날짜 변환 등 헬퍼 함수
     │
     └── /features         # ★ 기능별 모듈
+        ├── /accounting
+        │   ├── accounting.js  # 대시보드 화면+로직
+        │   └── accounting.view.js        
         ├── /dashboard
         │   ├── dashboard.js  # 대시보드 화면+로직
         │   └── style.css
