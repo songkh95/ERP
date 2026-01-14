@@ -45,7 +45,7 @@ export async function render() {
                     <div style="display:flex; gap:15px; align-items:center;">
                         <div>
                             <label style="display:block; font-size:0.8rem; color:#666; margin-bottom:4px;">검침 일자 (등록일)</label>
-                            <input type="date" id="inp-reg-date" class="form-input" style="width:140px; font-weight:bold;">
+                            <input type="month" id="inp-reg-date" class="form-input" style="width:140px; font-weight:bold;">
                         </div>
                         
                         <div>
@@ -138,7 +138,7 @@ export async function render() {
             
             <div class="form-group">
                 <label>검침일자</label>
-                <input type="date" id="inp-edit-date" class="form-input">
+                <input type="month" id="inp-edit-date" class="form-input">
             </div>
             
             <div class="grid-3" style="margin-top:15px;">

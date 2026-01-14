@@ -632,4 +632,26 @@ export async function init() {
             container.style.gridTemplateColumns = `${leftWidth}px 5px ${midWidth}px 5px 1fr`;
         }
     }
+    // =========================================================
+    // 8. [추가] 섹션 아코디언 (접기/펼치기)
+    // =========================================================
+    setupAccordion('header-client-info', 'body-client-info', 'icon-client-info');
+    setupAccordion('header-asset-info', 'body-asset-info', 'icon-asset-info');
+
+    function setupAccordion(headerId, bodyId, iconId) {
+        const header = document.getElementById(headerId);
+        const body = document.getElementById(bodyId);
+        const icon = document.getElementById(iconId);
+
+        if (header && body && icon) {
+            header.addEventListener('click', (e) => {
+                // 버튼(삭제, 추가) 클릭 시에는 접히지 않도록 막음
+                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+
+                body.classList.toggle('hidden-body');
+                icon.classList.toggle('rotate');
+            });
+        }
+    }
+
 }

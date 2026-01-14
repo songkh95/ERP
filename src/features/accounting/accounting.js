@@ -41,7 +41,7 @@ export async function init() {
     const regTbody = document.getElementById('register-tbody');
 
     // 초기값: 오늘 날짜
-    inpRegDate.value = new Date().toISOString().slice(0, 10);
+    inpRegDate.value = new Date().toISOString().slice(0, 7);
 
     btnLoadAssets.addEventListener('click', loadRegisterData);
     selBillDay.addEventListener('change', renderRegisterTable);
@@ -189,21 +189,26 @@ export async function init() {
             });
         });
 
-        // 저장 버튼 이벤트
+// 저장 버튼 이벤트
         document.querySelectorAll('.btn-reg-save').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const assetId = e.target.dataset.id;
-                const date = inpRegDate.value;
-                if(!date) return alert('검침 일자를 선택해주세요.');
+                
+                // ★ [수정 1] 입력된 '년-월'(YYYY-MM) 값을 가져옵니다.
+                const monthVal = inpRegDate.value;
+                if(!monthVal) return alert('검침 년/월을 선택해주세요.');
+
+                // ★ [수정 2] DB 저장을 위해 뒤에 '-01'을 붙여 날짜 형식(YYYY-MM-DD)으로 만듭니다.
+                const fullDate = monthVal + '-01'; 
 
                 const bw = document.getElementById(`reg-bw-${assetId}`).value;
                 const col = document.getElementById(`reg-col-${assetId}`).value;
                 const a3 = document.getElementById(`reg-a3-${assetId}`).value;
 
-                // 빈값이면 0 처리 or 경고 (여기선 0 처리)
+                // 빈값이면 0 처리
                 const payload = {
                     asset_id: assetId,
-                    reading_date: date,
+                    reading_date: fullDate, // ★ [수정 3] 변환된 날짜 변수(fullDate)를 사용
                     reading_bw: parseInt(bw) || 0,
                     reading_col: parseInt(col) || 0,
                     reading_col_a3: parseInt(a3) || 0
