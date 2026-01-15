@@ -50,7 +50,7 @@ export async function render() {
                         
                         <div>
                             <label style="display:block; font-size:0.8rem; color:#666; margin-bottom:4px;">청구일 필터</label>
-                            <select id="sel-bill-day" class="form-input" style="width:120px;">
+                            <select id="sel-bill-day" class="form-input" style="width:140px;">
                                 ${dayOptions}
                             </select>
                         </div>
@@ -90,13 +90,13 @@ export async function render() {
             </div>
         </div>
 
-        <div id="panel-history" class="hidden">
+<div id="panel-history" class="hidden">
             <div class="card" style="padding:15px; margin-bottom:20px;">
                 <div style="display:flex; justify-content:space-between; align-items:flex-end;">
                     <div style="display:flex; gap:15px; align-items:center;">
                         <div>
-                            <label style="display:block; font-size:0.8rem; color:#666; margin-bottom:4px;">조회 년/월</label>
-                            <input type="month" id="inp-history-month" class="form-input">
+                            <label style="display:block; font-size:0.8rem; color:#666; margin-bottom:4px;">조회 일자</label>
+                            <input type="date" id="inp-history-month" class="form-input">
                         </div>
                         <div style="padding-top:18px;">
                             <button id="btn-search-history" class="btn-primary"><i class='bx bx-search'></i> 조회</button>
@@ -131,14 +131,15 @@ export async function render() {
 
     </section>
 
-    <div id="edit-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+<div id="edit-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
         <div class="card" style="width:400px; padding:25px;">
             <h3 style="margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">✏️ 검침 이력 수정</h3>
             <input type="hidden" id="hdn-edit-id">
             
             <div class="form-group">
-                <label>검침일자</label>
-                <input type="month" id="inp-edit-date" class="form-input">
+                <label>검침일자 (수정불가)</label>
+                <input type="month" id="inp-edit-date" class="form-input" disabled style="background-color: #f3f4f6; color:#999; cursor:not-allowed;">
+                <div style="font-size:0.75rem; color:#ef4444; margin-top:4px;">* 날짜 변경은 삭제 후 재등록해주세요.</div>
             </div>
             
             <div class="grid-3" style="margin-top:15px;">

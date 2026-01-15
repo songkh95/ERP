@@ -40,7 +40,7 @@ export async function init() {
     const btnLoadAssets = document.getElementById('btn-load-assets');
     const regTbody = document.getElementById('register-tbody');
 
-    // 초기값: 오늘 날짜
+    // 초기값: 오늘 날짜의 '년-월' (YYYY-MM)
     inpRegDate.value = new Date().toISOString().slice(0, 7);
 
     btnLoadAssets.addEventListener('click', loadRegisterData);
@@ -53,11 +53,13 @@ export async function init() {
     async function loadRegisterData() {
         regTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;">데이터 로딩 중...</td></tr>';
 
+        // ★ [핵심 수정 1] 현재 선택된 등록 날짜를 기준으로 '전월 지침'을 가져옵니다.
+        // 예: 2026-03을 선택했다면 2026-03-01 이전의 데이터 중 가장 최신 값을 가져와야 함.
+        const currentMonthVal = inpRegDate.value;
+        const targetDate = currentMonthVal ? (currentMonthVal + '-01') : new Date().toISOString().slice(0, 10);
+
         try {
-            // 1. 모든 기기 + 최신 검침 기록 가져오기
-            // (최신 기록을 가져오는 건 쿼리가 복잡하므로, 일단 기기만 가져오고 JS에서 처리하거나
-            //  성능을 위해 RPC를 쓰지만 여기선 단순하게 기기 가져오고 -> 전체 최신 기록 따로 매핑)
-            
+            // 1. 모든 기기 정보 가져오기
             const { data: assets, error } = await supabase
                 .from('assets')
                 .select(`
@@ -71,18 +73,17 @@ export async function init() {
 
             if (error) throw error;
             
-            // 2. 각 기기별 '가장 최신' 지침 가져오기 (전월 지침용)
-            // (데이터가 많아지면 비효율적일 수 있으나 현재 규모에선 허용)
-            const { data: latestReadings } = await supabase
+            // 2. [수정됨] 기준일(targetDate)보다 '과거'인 기록들만 가져오기 (날짜 내림차순)
+            const { data: pastReadings } = await supabase
                 .from('meter_readings')
                 .select('asset_id, reading_bw, reading_col, reading_col_a3, reading_date')
+                .lt('reading_date', targetDate) // ★ 중요: 이번달 등록일보다 이전 데이터만 조회
                 .order('reading_date', { ascending: false });
 
-            // 매핑
+            // 3. 매핑
             registerAssets = assets.map(asset => {
-                // 이 기기의 기록 중 가장 최신 것 찾기 (단, 오늘 입력하려는 날짜보다 과거인 것)
-                // *간단하게는 그냥 전체 중 1등을 찾음
-                const lastReading = latestReadings?.find(r => r.asset_id === asset.id) || {};
+                // 이 기기의 과거 기록 중 가장 첫 번째(=가장 최신) 데이터 찾기
+                const lastReading = pastReadings?.find(r => r.asset_id === asset.id) || {};
                 
                 return {
                     ...asset,
@@ -189,26 +190,23 @@ export async function init() {
             });
         });
 
-// 저장 버튼 이벤트
+        // 저장 버튼 이벤트
         document.querySelectorAll('.btn-reg-save').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const assetId = e.target.dataset.id;
                 
-                // ★ [수정 1] 입력된 '년-월'(YYYY-MM) 값을 가져옵니다.
+                // ★ [수정 2] '년-월'(YYYY-MM) -> '년-월-일'(YYYY-MM-01) 변환
                 const monthVal = inpRegDate.value;
                 if(!monthVal) return alert('검침 년/월을 선택해주세요.');
-
-                // ★ [수정 2] DB 저장을 위해 뒤에 '-01'을 붙여 날짜 형식(YYYY-MM-DD)으로 만듭니다.
                 const fullDate = monthVal + '-01'; 
 
                 const bw = document.getElementById(`reg-bw-${assetId}`).value;
                 const col = document.getElementById(`reg-col-${assetId}`).value;
                 const a3 = document.getElementById(`reg-a3-${assetId}`).value;
 
-                // 빈값이면 0 처리
                 const payload = {
                     asset_id: assetId,
-                    reading_date: fullDate, // ★ [수정 3] 변환된 날짜 변수(fullDate)를 사용
+                    reading_date: fullDate, // 변환된 날짜 사용
                     reading_bw: parseInt(bw) || 0,
                     reading_col: parseInt(col) || 0,
                     reading_col_a3: parseInt(a3) || 0
@@ -230,7 +228,7 @@ export async function init() {
                     setTimeout(() => {
                         btn.innerHTML = originalHTML;
                         btn.classList.replace('btn-secondary', 'btn-primary');
-                        // 저장했으니 이력도 갱신되면 좋음 (History 탭 데이터 비우기)
+                        // 저장했으니 이력 데이터 초기화 (다시 불러오게)
                         historyData = []; 
                     }, 1500);
                 }
@@ -242,33 +240,30 @@ export async function init() {
     // =========================================================
     //  TAB 2. 검침 이력 (조회/수정/삭제)
     // =========================================================
-    const inpHistMonth = document.getElementById('inp-history-month');
+    const inpHistDate = document.getElementById('inp-history-month'); // HTML에서 type="date"
     const btnSearchHist = document.getElementById('btn-search-history');
     const inpSearchHist = document.getElementById('inp-search-history');
     const histTbody = document.getElementById('history-tbody');
     
-    // 모달
+    // 모달 요소들...
     const editModal = document.getElementById('edit-modal');
     const btnEditSave = document.getElementById('btn-edit-save');
     const btnEditCancel = document.getElementById('btn-edit-cancel');
 
-    // 초기값: 이번달
-    inpHistMonth.value = new Date().toISOString().slice(0, 7);
+    // 초기값: 오늘 날짜 (YYYY-MM-DD)
+    inpHistDate.value = new Date().toISOString().slice(0, 10);
 
     btnSearchHist.addEventListener('click', loadHistory);
     inpSearchHist.addEventListener('keyup', renderHistoryTable);
 
     async function loadHistory() {
-        const month = inpHistMonth.value;
-        if (!month) return alert('조회할 년/월을 선택하세요.');
+        const dateVal = inpHistDate.value;
+        if (!dateVal) return alert('조회할 일자를 선택하세요.');
 
         histTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;">이력 조회 중...</td></tr>';
 
-        // 해당 월의 1일 ~ 말일 범위
-        const startDate = `${month}-01`;
-        const endDate = new Date(new Date(startDate).getFullYear(), new Date(startDate).getMonth() + 1, 0).toISOString().slice(0,10);
-
         try {
+            // 일자 일치 검색(eq)
             const { data, error } = await supabase
                 .from('meter_readings')
                 .select(`
@@ -279,8 +274,7 @@ export async function init() {
                         clients (name)
                     )
                 `)
-                .gte('reading_date', startDate)
-                .lte('reading_date', endDate)
+                .eq('reading_date', dateVal) 
                 .order('reading_date', { ascending: false });
 
             if (error) throw error;
@@ -351,7 +345,12 @@ export async function init() {
     // --- 수정 모달 로직 ---
     function openEditModal(item) {
         document.getElementById('hdn-edit-id').value = item.id;
-        document.getElementById('inp-edit-date').value = item.reading_date;
+        
+        // ★ [수정 3] 날짜는 YYYY-MM까지만 잘라서 보여줌 (수정 불가 필드)
+        if(item.reading_date) {
+            document.getElementById('inp-edit-date').value = item.reading_date.slice(0, 7);
+        }
+
         document.getElementById('inp-edit-bw').value = item.reading_bw;
         document.getElementById('inp-edit-col').value = item.reading_col;
         document.getElementById('inp-edit-a3').value = item.reading_col_a3;
@@ -363,20 +362,18 @@ export async function init() {
     
     btnEditSave.addEventListener('click', async () => {
         const id = document.getElementById('hdn-edit-id').value;
-        const date = document.getElementById('inp-edit-date').value;
+        // ★ [수정 4] 날짜 값은 가져오지도 않고, 업데이트하지도 않음 (사용량만 수정)
         const bw = document.getElementById('inp-edit-bw').value;
         const col = document.getElementById('inp-edit-col').value;
         const a3 = document.getElementById('inp-edit-a3').value;
 
-        if(!date) return alert('날짜는 필수입니다.');
-
         const { error } = await supabase
             .from('meter_readings')
             .update({
-                reading_date: date,
                 reading_bw: parseInt(bw)||0,
                 reading_col: parseInt(col)||0,
                 reading_col_a3: parseInt(a3)||0
+                // reading_date는 제외됨
             })
             .eq('id', id);
 

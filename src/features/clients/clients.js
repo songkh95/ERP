@@ -5,7 +5,7 @@ export async function init() {
     // DOM 요소
     const listContainer = document.getElementById('client-list-container');
     const searchInput = document.getElementById('search-input');
-    const filterType = document.getElementById('filter-type'); // ★ [추가] 필터 요소
+    const filterType = document.getElementById('filter-type');
     const totalCount = document.getElementById('total-count');
     const emptyState = document.getElementById('empty-state');
     const detailView = document.getElementById('client-detail-view');
@@ -51,6 +51,16 @@ export async function init() {
     const btnExcelExport = document.getElementById('btn-excel-export');
     const btnExcelImport = document.getElementById('btn-excel-import');
     const inpExcelFile = document.getElementById('inp-excel-file');
+
+    // 사용량 수정 모달 관련 요소
+    const usageEditModal = document.getElementById('usage-edit-modal');
+    const inpUsageId = document.getElementById('hdn-usage-id');
+    const inpUsageDate = document.getElementById('inp-usage-date');
+    const inpUsageBw = document.getElementById('inp-usage-bw');
+    const inpUsageCol = document.getElementById('inp-usage-col');
+    const inpUsageA3 = document.getElementById('inp-usage-a3');
+    const btnUsageSave = document.getElementById('btn-usage-save');
+    const btnUsageCancel = document.getElementById('btn-usage-cancel');
 
     let allClients = [];
     let selectedClientId = null;
@@ -122,13 +132,10 @@ export async function init() {
             el.dataset.id = c.id;
             if (c.id == selectedClientId) el.classList.add('active');
             
-            // ★ [수정됨] 메인/서브 뱃지 모두 표시
             let typeBadge = '';
             if (c.parent_id) {
-                // 서브 (파랑)
                 typeBadge = `<span style="font-size:0.7rem; color:#0369a1; background:#e0f2fe; padding:1px 4px; border-radius:3px; margin-left:5px;">서브</span>`;
             } else {
-                // 메인 (초록)
                 typeBadge = `<span style="font-size:0.7rem; color:#15803d; background:#dcfce7; padding:1px 4px; border-radius:3px; margin-left:5px;">메인</span>`;
             }
 
@@ -138,21 +145,18 @@ export async function init() {
         });
     }
 
-    // ★ [수정됨] 통합 필터 함수 (검색어 + 필터종류)
     function applyFilter() {
         const keyword = searchInput.value.toLowerCase();
-        const type = filterType.value; // all, main, sub
+        const type = filterType.value;
 
         const filtered = allClients.filter(c => {
-            // 1. 텍스트 검색 확인
             const matchText = (c.name && c.name.toLowerCase().includes(keyword)) ||
                               (c.client_code && c.client_code.toLowerCase().includes(keyword)) ||
                               (c.contact_person && c.contact_person.toLowerCase().includes(keyword));
             
-            // 2. 메인/서브 필터 확인
             let matchType = true;
-            if (type === 'main') matchType = !c.parent_id; // 부모가 없으면 메인
-            if (type === 'sub') matchType = !!c.parent_id; // 부모가 있으면 서브
+            if (type === 'main') matchType = !c.parent_id;
+            if (type === 'sub') matchType = !!c.parent_id;
 
             return matchText && matchType;
         });
@@ -160,7 +164,6 @@ export async function init() {
         renderClientList(filtered);
     }
 
-    // 이벤트 리스너 연결
     searchInput.addEventListener('keyup', applyFilter);
     filterType.addEventListener('change', applyFilter);
 
@@ -269,13 +272,12 @@ export async function init() {
         });
     }
 
-// =========================================================
-    // 3. 기기 목록 (Assets) - 철수 버튼 추가됨
+    // =========================================================
+    // 3. 기기 목록 (Assets)
     // =========================================================
     async function loadAssets(clientId) {
         assetListContainer.innerHTML = '<div style="color:#999; text-align:center;">로딩 중...</div>';
         
-        // 1. 내 서브(자식) 거래처 찾기
         const { data: branches } = await supabase
             .from('clients')
             .select('id, name')
@@ -291,7 +293,6 @@ export async function init() {
             });
         }
 
-        // 2. 기기 조회
         const { data: assets } = await supabase
             .from('assets')
             .select('*, products(model_name), clients(name)')
@@ -309,7 +310,6 @@ export async function init() {
             const card = document.createElement('div');
             card.className = 'asset-card';
             
-            // 서브 뱃지
             let subBadge = '';
             if (asset.client_id !== clientId) {
                 const subName = branchMap[asset.client_id] || asset.clients?.name || '서브';
@@ -321,7 +321,6 @@ export async function init() {
             let billDayDisplay = '-';
             if (asset.billing_day) billDayDisplay = asset.billing_day === '말일' ? '말일' : `${asset.billing_day}일`;
             
-            // HTML 구조
             card.innerHTML = `
                 <div class="asset-header">
                     <div class="asset-header-left">
@@ -349,14 +348,12 @@ export async function init() {
                         <div><span class="info-label">계약일자</span> <span class="info-value">${showDate(asset.contract_date)}</span></div>
                         <div><span class="info-label">만기일</span> <span class="info-value">${showDate(asset.contract_end_date)}</span></div>
                         <div><span class="info-label">월 기본료</span> <span class="info-value">${cost(asset.rental_cost)}원</span></div>
-                        <div><span class="info-label">기본매수</span> <span class="info-value">BW:${cost(asset.base_count_bw)} / Col:${cost(asset.base_count_col)}</span></div>
+                        <div><span class="info-label">기본매수</span> <span class="info-value">흑백:${cost(asset.base_count_bw)} / 칼라:${cost(asset.base_count_col)}</span></div>
                         <div class="info-full"><span class="info-label">비고</span><span class="info-value" style="color:#666; font-size:0.8rem;">${asset.memo || '-'}</span></div>
                     </div>
                 </div>`;
             
             // --- 이벤트 리스너 ---
-
-            // 1. 아코디언 접기/펴기
             const header = card.querySelector('.asset-header');
             const details = card.querySelector('.asset-details');
             const arrow = card.querySelector('.arrow-icon');
@@ -374,32 +371,29 @@ export async function init() {
                 }
             });
 
-            // 2. 수정 버튼 (이벤트 전파 중단)
             const editBtn = card.querySelector('.btn-edit-asset');
             editBtn.addEventListener('click', (e) => {
                 e.stopPropagation(); 
                 window.openAssetModal(asset);
             });
 
-            // 3. ★ [추가] 철수 버튼 로직
             const returnBtn = card.querySelector('.btn-return-asset');
             returnBtn.addEventListener('click', async (e) => {
-                e.stopPropagation(); // 아코디언 열림 방지
+                e.stopPropagation(); 
                 
                 if (!confirm(`[${asset.products?.model_name || ''}] 기기를 철수하시겠습니까?\n\n'확인'을 누르면 즉시 재고로 전환되며,\n이 거래처 목록에서 사라집니다.`)) return;
 
-                // DB 업데이트: 주인 없앰, 상태 재고로, 위치 초기화
                 const { error } = await supabase.from('assets').update({
-                    client_id: null,      // 거래처 연결 해제
-                    status: '재고',        // 상태 변경
-                    install_location: ''  // 위치 초기화
+                    client_id: null,
+                    status: '재고',
+                    install_location: ''
                 }).eq('id', asset.id);
 
                 if (error) {
                     alert('철수 처리 실패: ' + error.message);
                 } else {
                     alert('✅ 재고로 회수되었습니다.');
-                    loadAssets(clientId); // 목록 새로고침
+                    loadAssets(clientId); 
                 }
             });
 
@@ -510,73 +504,234 @@ export async function init() {
         }
     });
 
-    // =========================================================
-    // 5. 사용량 조회
-    // =========================================================
-    async function loadUsage(clientId) {
-        usageContainer.innerHTML = '로딩중...';
-        const { data: assets } = await supabase.from('assets').select('id').eq('client_id', clientId);
-        if (!assets || assets.length === 0) { usageContainer.innerHTML = '기기 없음'; return; }
-        const ids = assets.map(a => a.id);
-        const { data: readings } = await supabase.from('meter_readings').select('*, assets(products(model_name))').in('asset_id', ids).order('reading_date', {ascending:false}).limit(20);
-        if (!readings || readings.length === 0) { usageContainer.innerHTML = '기록 없음'; return; }
-        usageContainer.innerHTML = `<table class="usage-table"><thead><tr><th>모델</th><th>날짜</th><th>흑백</th><th>칼라</th></tr></thead><tbody>${readings.map(r => `<tr><td>${r.assets?.products?.model_name}</td><td>${r.reading_date}</td><td>${r.reading_bw?.toLocaleString()}</td><td>${r.reading_col?.toLocaleString()}</td></tr>`).join('')}</tbody></table>`;
-    }
-
-    // =========================================================
-    // 6. 엑셀 및 리사이저
-    // =========================================================
-    if(btnExcelExport) {
-        btnExcelExport.addEventListener('click', () => {
-            if (allClients.length === 0) return alert('내보낼 데이터가 없습니다.');
-            const excelData = allClients.map(c => ({
-                '고객번호': c.client_code, '거래처명': c.name, '메인/서브': c.relation_type, '담당자': c.contact_person, '이메일': c.email, '주소': c.address
-            }));
-            const ws = XLSX.utils.json_to_sheet(excelData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "거래처목록");
-            XLSX.writeFile(wb, `거래처목록_${new Date().toISOString().slice(0,10)}.xlsx`);
+    // 사용량 수정 모달 이벤트 (수정됨)
+    if (btnUsageCancel) {
+        btnUsageCancel.addEventListener('click', () => {
+            usageEditModal.style.display = 'none';
         });
     }
 
-    if(btnExcelImport) {
-        btnExcelImport.addEventListener('click', () => inpExcelFile.click());
+    if (btnUsageSave) {
+        btnUsageSave.addEventListener('click', async () => {
+            const id = inpUsageId.value;
+            // ★ [수정] 날짜 필드 제외 (수정 불가)
+            const payload = {
+                reading_bw: Number(inpUsageBw.value) || 0,
+                reading_col: Number(inpUsageCol.value) || 0,
+                reading_col_a3: Number(inpUsageA3.value) || 0
+            };
+
+            const { error } = await supabase
+                .from('meter_readings')
+                .update(payload)
+                .eq('id', id);
+
+            if (error) {
+                alert('수정 실패: ' + error.message);
+            } else {
+                alert('수정되었습니다.');
+                usageEditModal.style.display = 'none';
+                loadUsage(selectedClientId); 
+            }
+        });
     }
 
-    if(inpExcelFile) {
-        inpExcelFile.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            if(!confirm('엑셀의 거래처 기본 정보를 등록하시겠습니까?')) { inpExcelFile.value = ''; return; }
+    // =========================================================
+    // 5. 사용량 (Accounting) 관리 - 리사이징 & CRUD (수정됨)
+    // =========================================================
+    
+    let usageData = []; 
 
-            const reader = new FileReader();
-            reader.onload = async (evt) => {
-                try {
-                    const data = evt.target.result;
-                    const workbook = XLSX.read(data, { type: 'binary' });
-                    const sheetName = workbook.SheetNames[0];
-                    const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+    async function loadUsage(clientId) {
+        const usageContainer = document.getElementById('usage-container');
+        usageContainer.innerHTML = '<div style="text-align:center; padding:20px; color:#666;">데이터를 불러오는 중...</div>';
+        
+        try {
+            const { data: readings, error } = await supabase
+                .from('meter_readings')
+                .select(`
+                    *,
+                    assets!inner (
+                        id, serial_number,
+                        products ( model_name )
+                    )
+                `)
+                .eq('assets.client_id', clientId)
+                .order('reading_date', { ascending: false });
 
-                    if (jsonData.length === 0) { alert('데이터가 없습니다.'); return; }
+            if (error) {
+                console.error("사용량 조회 에러:", error);
+                throw error;
+            }
 
-                    const payload = jsonData.map(row => ({
-                        client_code: row['고객번호'] || row['코드'], name: row['거래처명'] || row['상호명'],
-                        contact_person: row['대표자/담당자'] || row['담당자'], email: row['이메일'], address: row['주소'],
-                        relation_type: '메인'
-                    })).filter(r => r.name);
+            usageData = readings || []; 
+            renderUsageUI(clientId);
 
-                    const { error } = await supabase.from('clients').insert(payload);
-                    if (error) {
-                        if (error.code === '23505') alert('중복된 고객번호가 있거나 이미 등록된 거래처입니다.');
-                        else alert('등록 실패: ' + error.message);
-                    } else {
-                        alert(`✅ ${payload.length}건 등록 완료.`);
-                        loadData();
-                    }
-                } catch (err) { console.error(err); alert('오류: ' + err.message); } 
-                finally { inpExcelFile.value = ''; }
-            };
-            reader.readAsBinaryString(file);
+        } catch (err) {
+            console.error(err);
+            usageContainer.innerHTML = `<div style="text-align:center; padding:20px; color:red;">불러오기 실패<br><span style="font-size:0.8rem;">${err.message}</span></div>`;
+        }
+    }
+
+    function renderUsageUI(clientId) {
+        const usageContainer = document.getElementById('usage-container');
+
+        let dayOptions = '<option value="">일(전체)</option>';
+        for(let i=1; i<=31; i++) {
+            const val = String(i).padStart(2, '0'); 
+            dayOptions += `<option value="${val}">${i}일</option>`;
+        }
+
+        const filterHtml = `
+            <div class="usage-filter-bar">
+                <input type="month" id="filter-usage-month" class="form-input" style="width:110px; font-size:0.8rem;">
+                
+                <select id="filter-usage-day" class="form-input" style="width:80px; font-size:0.8rem;">
+                    ${dayOptions}
+                </select>
+
+                <input type="text" id="filter-usage-search" class="form-input" placeholder="모델명, S/N 검색..." style="flex:1; font-size:0.8rem;">
+            </div>
+            
+            <div class="usage-table-wrapper">
+                <table class="resizable-table" id="usage-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 90px;">날짜 <div class="resize-handle"></div></th>
+                            <th style="width: 140px;">모델명 (S/N) <div class="resize-handle"></div></th>
+                            <th style="width: 70px;">흑백 <div class="resize-handle"></div></th>
+                            <th style="width: 70px;">칼라 <div class="resize-handle"></div></th>
+                            <th style="width: 70px;">A3 <div class="resize-handle"></div></th>
+                            <th style="width: 60px;">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usage-tbody"></tbody>
+                </table>
+            </div>
+        `;
+        usageContainer.innerHTML = filterHtml;
+        
+        renderUsageTableRows();
+
+        document.getElementById('filter-usage-month').addEventListener('change', renderUsageTableRows);
+        document.getElementById('filter-usage-day').addEventListener('change', renderUsageTableRows);
+        document.getElementById('filter-usage-search').addEventListener('keyup', renderUsageTableRows);
+        
+        enableTableResizing('usage-table');
+    }
+
+    function renderUsageTableRows() {
+        const tbody = document.getElementById('usage-tbody');
+        if (!tbody) return;
+
+        const filterMonth = document.getElementById('filter-usage-month').value; 
+        const filterDay = document.getElementById('filter-usage-day').value;     
+        const keyword = document.getElementById('filter-usage-search').value.toLowerCase(); 
+
+        const filtered = usageData.filter(item => {
+            const date = item.reading_date || ''; 
+            
+            const matchMonth = filterMonth ? date.startsWith(filterMonth) : true;
+            const dayPart = date.slice(-2); 
+            const matchDay = filterDay ? (dayPart === filterDay) : true;
+            const modelName = (item.assets?.products?.model_name || '').toLowerCase();
+            const serial = (item.assets?.serial_number || '').toLowerCase();
+            const matchText = modelName.includes(keyword) || serial.includes(keyword);
+
+            return matchMonth && matchDay && matchText;
+        });
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:#999;">데이터가 없습니다.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = filtered.map(item => `
+            <tr>
+                <td style="text-align:center;">${item.reading_date}</td>
+                <td style="text-align:left;">
+                    <div style="font-weight:bold; color:#0369a1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                        ${item.assets.products.model_name}
+                    </div>
+                    <div style="font-size:0.7rem; color:#888;">${item.assets.serial_number}</div>
+                </td>
+                <td>${item.reading_bw?.toLocaleString()}</td>
+                <td>${item.reading_col?.toLocaleString()}</td>
+                <td>${item.reading_col_a3?.toLocaleString() || 0}</td>
+                <td style="text-align:center;">
+                    <button class="btn-edit-reading" data-id="${item.id}" style="border:none; background:none; cursor:pointer; color:#2563eb; padding:2px;"><i class='bx bx-edit'></i></button>
+                    <button class="btn-del-reading" data-id="${item.id}" style="border:none; background:none; cursor:pointer; color:#ef4444; padding:2px;"><i class='bx bx-trash'></i></button>
+                </td>
+            </tr>
+        `).join('');
+
+        // 1. 삭제 버튼
+        tbody.querySelectorAll('.btn-del-reading').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const id = e.target.closest('button').dataset.id;
+                if (!confirm('정말 삭제하시겠습니까?')) return;
+
+                const { error } = await supabase.from('meter_readings').delete().eq('id', id);
+                if (error) alert('삭제 실패: ' + error.message);
+                else loadUsage(selectedClientId);
+            });
+        });
+
+        // 2. 수정 버튼 (모달 열기)
+        tbody.querySelectorAll('.btn-edit-reading').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = e.target.closest('button').dataset.id;
+                const item = usageData.find(d => d.id == id);
+                
+                if (item) {
+                    const inpUsageId = document.getElementById('hdn-usage-id');
+                    const inpUsageDate = document.getElementById('inp-usage-date');
+                    const inpUsageBw = document.getElementById('inp-usage-bw');
+                    const inpUsageCol = document.getElementById('inp-usage-col');
+                    const inpUsageA3 = document.getElementById('inp-usage-a3');
+                    const usageEditModal = document.getElementById('usage-edit-modal');
+
+                    inpUsageId.value = item.id;
+                    inpUsageDate.value = item.reading_date;
+                    inpUsageBw.value = item.reading_bw || 0;
+                    inpUsageCol.value = item.reading_col || 0;
+                    inpUsageA3.value = item.reading_col_a3 || 0;
+                    
+                    usageEditModal.style.display = 'flex';
+                }
+            });
+        });
+    }
+
+    function enableTableResizing(tableId) {
+        const table = document.getElementById(tableId);
+        if(!table) return;
+        const headers = table.querySelectorAll('th');
+
+        headers.forEach(th => {
+            const handle = th.querySelector('.resize-handle');
+            if (!handle) return;
+
+            handle.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                const startX = e.pageX;
+                const startWidth = th.offsetWidth;
+
+                const onMouseMove = (moveEvent) => {
+                    const newWidth = startWidth + (moveEvent.pageX - startX);
+                    if (newWidth > 30) th.style.width = `${newWidth}px`;
+                };
+
+                const onMouseUp = () => {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                    handle.classList.remove('active');
+                };
+
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+                handle.classList.add('active');
+            });
         });
     }
 
@@ -632,9 +787,7 @@ export async function init() {
             container.style.gridTemplateColumns = `${leftWidth}px 5px ${midWidth}px 5px 1fr`;
         }
     }
-    // =========================================================
-    // 8. [추가] 섹션 아코디언 (접기/펼치기)
-    // =========================================================
+
     setupAccordion('header-client-info', 'body-client-info', 'icon-client-info');
     setupAccordion('header-asset-info', 'body-asset-info', 'icon-asset-info');
 
@@ -645,13 +798,10 @@ export async function init() {
 
         if (header && body && icon) {
             header.addEventListener('click', (e) => {
-                // 버튼(삭제, 추가) 클릭 시에는 접히지 않도록 막음
                 if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
-
                 body.classList.toggle('hidden-body');
                 icon.classList.toggle('rotate');
             });
         }
     }
-
 }
