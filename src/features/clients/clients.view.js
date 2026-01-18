@@ -1,28 +1,32 @@
 export async function render() {
     return `
     <style>
-        /* 기존 스타일 유지 */
         .saas-container { display: grid; grid-template-columns: 280px 5px 500px 5px 1fr; height: calc(100vh - 70px); background-color: #f3f4f6; overflow: hidden; }
         .panel { background: white; display: flex; flex-direction: column; overflow: hidden; position: relative; }
         .panel-header { height: 50px; padding: 0 15px; border-bottom: 1px solid #e5e7eb; background: #fff; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
         .panel-title { font-weight: 700; color: #111827; font-size: 0.95rem; display:flex; gap:5px; align-items:center; }
         .panel-body { flex: 1; overflow-y: auto; padding: 0; }
+        
         .resizer { background: #f3f4f6; cursor: col-resize; z-index: 10; border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; transition: background 0.2s; }
         .resizer:hover, .resizer.resizing { background: #3b82f6; border-color: #3b82f6; }
+        
         .client-list-item { padding: 15px; border-bottom: 1px solid #f3f4f6; cursor: pointer; transition: all 0.1s; }
         .client-list-item:hover { background: #f9fafb; }
         .client-list-item.active { background: #eff6ff; border-left: 3px solid #2563eb; }
         .client-name { font-weight: 600; color: #374151; }
         .client-meta { font-size: 0.8rem; color: #9ca3af; margin-top: 4px; }
+
         .split-container { display: flex; flex-direction: column; height: 100%; }
         .top-section { flex-shrink: 0; border-bottom: 5px solid #f3f4f6; background:#fff; }
         .bottom-section { flex: 1; overflow-y: auto; background: #fafafa; }
+        
         .section-header { font-size: 0.9rem; font-weight: 700; color: #4b5563; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; border-bottom: 1px solid #f3f4f6; background: #fff; transition: background 0.2s; }
         .section-header:hover { background: #f9fafb; }
         .toggle-icon { transition: transform 0.3s; font-size: 1.2rem; color: #9ca3af; margin-right: 5px; }
         .toggle-icon.rotate { transform: rotate(-90deg); }
         .section-body { padding: 20px; transition: all 0.3s; }
         .section-body.hidden-body { display: none; }
+
         .asset-card { background: white; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 8px; overflow: hidden; transition: all 0.2s; }
         .asset-card:hover { border-color: #bfdbfe; }
         .asset-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: #fff; cursor: pointer; height: 40px; }
@@ -32,10 +36,19 @@ export async function render() {
         .asset-sn { font-size: 0.8rem; color: #64748b; background: #f1f5f9; padding: 1px 5px; border-radius: 4px; white-space: nowrap; flex-shrink: 0; }
         .asset-details { display: none; padding: 15px; border-top: 1px dashed #e5e7eb; background: #fafafa; }
         .asset-details.show { display: block; }
+
+        .usage-filter-bar { display: flex; gap: 5px; padding: 10px; background: #fff; border-bottom: 1px solid #eee; align-items: center; position: sticky; top: 0; z-index: 20; }
+        .usage-table-wrapper { overflow-x: auto; height: 100%; }
+        .resizable-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .resizable-table th { position: sticky; top: 0; background: #f3f4f6; border: 1px solid #d1d5db; padding: 8px; font-size: 0.8rem; text-align: center; user-select: none; z-index: 10; }
+        .resizable-table td { border: 1px solid #e5e7eb; padding: 6px 8px; font-size: 0.8rem; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .resize-handle { position: absolute; top: 0; right: 0; bottom: 0; width: 5px; cursor: col-resize; background: transparent; z-index: 10; }
+        
         .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 0.85rem; }
         .info-label { color: #9ca3af; font-size: 0.75rem; display: block; margin-bottom: 2px; }
         .info-value { color: #374151; font-weight: 500; }
         .info-full { grid-column: 1 / -1; margin-top: 5px; border-top: 1px dotted #eee; padding-top: 5px; }
+        
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
     </style>
@@ -50,9 +63,7 @@ export async function render() {
             </div>
             <div style="padding:10px; border-bottom:1px solid #e5e7eb; display:flex; gap:5px;">
                 <select id="filter-type" class="form-input" style="width:80px; padding:0 5px; font-size:0.8rem;">
-                    <option value="all">전체</option>
-                    <option value="main">메인</option>
-                    <option value="sub">서브</option>
+                    <option value="all">전체</option><option value="main">메인</option><option value="sub">서브</option>
                 </select>
                 <input type="text" id="search-input" class="form-input" placeholder="검색..." style="flex:1;">
             </div>
@@ -76,19 +87,14 @@ export async function render() {
 
             <div id="empty-state" style="text-align:center; padding-top:150px; color:#9ca3af;">
                 <i class='bx bx-mouse-alt' style="font-size:3rem; margin-bottom:10px;"></i>
-                <p>거래처를 선택하거나<br>'새 거래처 등록하기'를 눌러주세요.</p>
+                <p>거래처를 선택하거나 '신규 등록'을 눌러주세요.</p>
             </div>
 
             <div id="client-detail-view" class="panel-body split-container hidden">
                 <div class="top-section">
                     <div class="section-header" id="header-client-info">
-                        <div style="display:flex; align-items:center;">
-                            <i class='bx bx-chevron-down toggle-icon' id="icon-client-info"></i>
-                            <span>🏢 고객 기본 정보</span>
-                        </div>
-                        <button id="btn-delete-client" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:0.8rem;">
-                            <i class='bx bx-trash'></i> 거래처 삭제
-                        </button>
+                        <div style="display:flex; align-items:center;"><i class='bx bx-chevron-down toggle-icon' id="icon-client-info"></i><span>🏢 고객 기본 정보</span></div>
+                        <button id="btn-delete-client" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:0.8rem;"><i class='bx bx-trash'></i> 삭제</button>
                     </div>
                     <div class="section-body" id="body-client-info">
                         <div class="grid-2">
@@ -99,23 +105,18 @@ export async function render() {
                             <div class="form-group"><label>담당자</label><input type="text" id="inp-contact" class="form-input"></div>
                             <div class="form-group"><label>이메일</label><input type="email" id="inp-email" class="form-input"></div>
                         </div>
-                        <div class="form-group" style="background:#f9fafb; padding:10px; border-radius:6px; border:1px solid #e5e7eb; margin-bottom:10px;">
-                            <label style="color:#0369a1; font-weight:bold;">🔗 메인 거래처 연결 (서브일 경우 설정)</label>
+                        <div class="form-group"><label>주소</label><input type="text" id="inp-address" class="form-input"></div>
+                        <div class="form-group" style="background:#f9fafb; padding:10px; border-radius:6px; border:1px solid #e5e7eb; margin-top:10px;">
+                            <label style="color:#0369a1; font-weight:bold;">🔗 메인 거래처 연결 (서브일 경우)</label>
                             <select id="sel-parent-client" class="form-input"></select>
                         </div>
-                        <div class="form-group"><label>주소</label><input type="text" id="inp-address" class="form-input"></div>
                     </div>
                 </div>
 
                 <div class="bottom-section">
                     <div class="section-header" id="header-asset-info">
-                        <div style="display:flex; align-items:center;">
-                            <i class='bx bx-chevron-down toggle-icon' id="icon-asset-info"></i>
-                            <span>🖨️ 등록된 기계별 계약 정보</span>
-                        </div>
-                        <button id="btn-add-asset-modal" class="btn-secondary" style="font-size:0.75rem; padding:4px 8px;">
-                            <i class='bx bx-plus'></i> 기기 추가
-                        </button>
+                        <div style="display:flex; align-items:center;"><i class='bx bx-chevron-down toggle-icon' id="icon-asset-info"></i><span>🖨️ 등록된 기계별 계약 정보</span></div>
+                        <button id="btn-add-asset-modal" class="btn-secondary" style="font-size:0.75rem; padding:4px 8px;"><i class='bx bx-plus'></i> 기기 추가</button>
                     </div>
                     <div class="section-body" id="body-asset-info">
                         <div id="asset-list-container"></div>
@@ -130,56 +131,46 @@ export async function render() {
             <div class="panel-header">
                 <div class="panel-title"><i class='bx bx-bar-chart-alt-2'></i> 사용량 (Accounting)</div>
             </div>
-            <div id="usage-container" class="panel-body" style="padding:0;">
-                <div style="padding:20px; text-align:center; color:#999;">선택 대기중...</div>
-            </div>
+            <div id="usage-container" class="panel-body" style="padding:0;"></div>
         </aside>
     </div>
 
     <div id="asset-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
         <div class="card" style="width:650px; max-height:90vh; overflow-y:auto; padding:25px;">
-            <h3 style="margin-bottom:20px; font-size:1.1rem; border-bottom:1px solid #eee; padding-bottom:10px;">
-                ✨ 기기 및 계약 상세 설정
-            </h3>
-            
+            <h3 style="margin-bottom:20px; font-size:1.1rem; border-bottom:1px solid #eee; padding-bottom:10px;">✨ 기기 및 계약 설정</h3>
             <input type="hidden" id="hdn-asset-id">
             <input type="hidden" id="hdn-asset-client-id">
 
-            <h4 style="font-size:0.9rem; color:#0369a1; margin-bottom:10px;">📌 기기 식별</h4>
             <div class="form-group" style="margin-bottom:15px;">
                 <label>모델 선택 <span style="color:red">*</span></label>
                 <div id="box-select-model" style="display:flex; gap:5px;">
                     <select id="sel-new-model" class="form-input" style="flex:1; font-weight:500;"></select>
-                    <button id="btn-show-new-model-form" class="btn-secondary" title="새 모델 등록" style="white-space:nowrap; padding:0 12px;">
-                        <i class='bx bx-plus'></i> 신규모델
-                    </button>
+                    <button id="btn-show-new-model-form" class="btn-secondary" style="white-space:nowrap; padding:0 12px;">신규모델</button>
                 </div>
-                <div id="box-new-model-form" class="hidden" style="background:#f0f9ff; padding:15px; border:1px solid #bae6fd; border-radius:6px;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px dashed #bae6fd; padding-bottom:5px;">
-                        <span style="font-weight:bold; color:#0369a1; font-size:0.9rem;">🆕 신규 모델 정보 입력</span>
+                <div id="box-new-model-form" class="hidden" style="background:#f0f9ff; padding:15px; border:1px solid #bae6fd; border-radius:6px; margin-top:5px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <span style="font-weight:bold; color:#0369a1; font-size:0.9rem;">🆕 신규 모델 등록</span>
                         <button id="btn-cancel-new-model" class="btn-secondary" style="font-size:0.75rem; padding:2px 8px;">취소</button>
                     </div>
-                    <div class="form-group" style="margin-bottom:10px;"><label style="font-size:0.8rem; color:#666;">제조사</label><input type="text" id="inp-new-maker" class="form-input"></div>
-                    <div class="form-group" style="margin-bottom:10px;"><label style="font-size:0.8rem; color:#666;">모델명</label><input type="text" id="inp-new-model-name" class="form-input"></div>
-                    <div class="form-group"><label style="font-size:0.8rem; color:#666;">타입</label><select id="sel-new-model-type" class="form-input"><option value="흑백">흑백</option><option value="컬러">컬러</option></select></div>
+                    <div class="form-group" style="margin-bottom:10px;"><input type="text" id="inp-new-maker" class="form-input" placeholder="제조사"></div>
+                    <div class="form-group" style="margin-bottom:10px;"><input type="text" id="inp-new-model-name" class="form-input" placeholder="모델명"></div>
+                    <div class="form-group"><select id="sel-new-model-type" class="form-input"><option value="흑백">흑백</option><option value="컬러">컬러</option></select></div>
                 </div>
             </div>
 
             <div class="grid-2">
-                <div class="form-group">
-                    <label>Serial No. <span style="color:red">*</span></label>
-                    <input type="text" id="inp-new-serial" class="form-input" placeholder="S/N 입력">
-                </div>
-                <div class="form-group">
-                    <label>설치부서/장소</label>
-                    <input type="text" id="inp-asset-loc" class="form-input" placeholder="예: 2층 로비">
-                </div>
+                <div class="form-group"><label>Serial No. <span style="color:red">*</span></label><input type="text" id="inp-new-serial" class="form-input" placeholder="S/N 입력"></div>
+                <div class="form-group"><label>설치장소</label><input type="text" id="inp-asset-loc" class="form-input" placeholder="예: 2층 로비"></div>
             </div>
 
-            <h4 style="font-size:0.9rem; color:#0369a1; margin:20px 0 10px; border-top:1px dashed #eee; padding-top:15px;">📅 기간 및 청구 설정</h4>
+            <h4 style="font-size:0.9rem; color:#0369a1; margin:15px 0 10px; border-top:1px dashed #eee; padding-top:10px;">📅 기간 및 청구</h4>
             <div class="grid-2">
                 <div class="form-group"><label>계약일자</label><input type="date" id="inp-con-date" class="form-input"></div>
+                <div class="form-group"><label>계약개시일</label><input type="date" id="inp-start-date" class="form-input"></div>
+            </div>
+            <div class="grid-2" style="margin-top:10px;">
                 <div class="form-group"><label>계약만기일</label><input type="date" id="inp-end-date" class="form-input"></div>
+                <div class="form-group"><label>해약일자</label><input type="date" id="inp-cancel-date" class="form-input"></div>
             </div>
             <div class="grid-2" style="margin-top:10px;">
                 <div class="form-group">
@@ -188,17 +179,14 @@ export async function render() {
                         <option value="">선택</option><option value="월청구">월청구</option><option value="선청구">선청구</option><option value="수시청구">수시청구</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>청구일</label>
-                    <input type="text" id="inp-asset-bill-day" class="form-input" placeholder="예: 매월 25일">
-                </div>
+                <div class="form-group"><label>청구일</label><input type="text" id="inp-asset-bill-day" class="form-input" placeholder="예: 25일"></div>
             </div>
 
-            <h4 style="font-size:0.9rem; color:#0369a1; margin:15px 0 10px; background:#e3f2fd; padding:5px 10px; border-radius:4px;">💰 계약 요금 (자동 계산 기준)</h4>
+            <h4 style="font-size:0.9rem; color:#0369a1; margin:15px 0 10px; background:#e3f2fd; padding:5px 10px; border-radius:4px;">💰 계약 요금 (필수)</h4>
             <div class="grid-3" style="background:#f8f9fa; padding:15px; border-radius:6px; border:1px solid #e0e0e0;">
-                <div class="form-group"><label>월 기본료(원)</label><input type="number" id="inp-contract-fee" class="form-input" style="text-align:right; font-weight:bold;" placeholder="0"></div>
-                <div class="form-group"><label>흑백 기본매수</label><input type="number" id="inp-contract-base-bw" class="form-input" style="text-align:right;" placeholder="0"></div>
-                <div class="form-group"><label>컬러 기본매수</label><input type="number" id="inp-contract-base-col" class="form-input" style="text-align:right;" placeholder="0"></div>
+                <div class="form-group"><label>월 기본료(원)</label><input type="number" id="inp-contract-fee" class="form-input" style="text-align:right; font-weight:bold;" value="0"></div>
+                <div class="form-group"><label>흑백 기본매수</label><input type="number" id="inp-contract-base-bw" class="form-input" style="text-align:right;" value="0"></div>
+                <div class="form-group"><label>컬러 기본매수</label><input type="number" id="inp-contract-base-col" class="form-input" style="text-align:right;" value="0"></div>
                 
                 <div class="form-group"><label>흑백 초과(장당)</label><input type="number" id="inp-contract-rate-bw" class="form-input" style="text-align:right;" value="10"></div>
                 <div class="form-group"><label>컬러A4 초과(장당)</label><input type="number" id="inp-contract-rate-a4" class="form-input" style="text-align:right;" value="100"></div>
@@ -221,7 +209,7 @@ export async function render() {
         <div class="card" style="width:350px; padding:20px; background:white; border-radius:8px;">
             <h3 style="margin-bottom:15px;">✏️ 사용량 기록 수정</h3>
             <input type="hidden" id="hdn-usage-id">
-            <div class="form-group"><label>날짜 (수정불가)</label><input type="text" id="inp-usage-date" class="form-input" disabled></div>
+            <div class="form-group"><label>날짜</label><input type="text" id="inp-usage-date" class="form-input" disabled></div>
             <div class="form-group"><label>A4 흑백</label><input type="number" id="inp-usage-bw" class="form-input"></div>
             <div class="form-group"><label>A4 칼라</label><input type="number" id="inp-usage-col" class="form-input"></div>
             <div class="form-group"><label>A3 칼라</label><input type="number" id="inp-usage-a3" class="form-input"></div>
