@@ -1,0 +1,55 @@
+<section class="accounting-page">
+    <h1>💰 통합 정산 관리 (Accounting)</h1>
+
+    <div class="control-panel" style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="font-size: 0.9em; color: #666;">
+            * 전월/당월 요금은 <strong>최근 입력된 검침일</strong> 기준으로 자동 계산됩니다.
+        </div>
+        <div>
+            <button id="btn-refresh" class="btn-primary">🔄 새로고침</button>
+        </div>
+    </div>
+
+    <div class="table-container" style="overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+        <table class="accounting-table" style="width: 100%; border-collapse: collapse; min-width: 1200px;">
+            <thead>
+                <tr style="background: #f8f9fa; border-bottom: 1px solid #ddd;">
+                    <th rowspan="2" style="padding: 12px; text-align: left; width: 250px;">거래처 / 기기 정보</th>
+                    
+                    <th colspan="4" style="background: #eee; text-align: center; padding: 8px; border-left: 1px solid #ddd;">
+                        📉 전월 (확정)
+                    </th>
+                    
+                    <th colspan="4" style="background: #e3f2fd; color: #0056b3; text-align: center; padding: 8px; border-left: 1px solid #ddd;">
+                        📈 당월 (현재)
+                    </th>
+                </tr>
+                <tr style="border-bottom: 2px solid #ccc; font-size: 0.85em;">
+                    <th style="background: #f1f3f5; border-left: 1px solid #ddd; padding: 8px; text-align: right;">흑백추가</th>
+                    <th style="background: #f1f3f5; padding: 8px; text-align: right;">A4추가</th>
+                    <th style="background: #f1f3f5; padding: 8px; text-align: right;">A3추가</th>
+                    <th style="background: #e9ecef; padding: 8px; text-align: right; font-weight: bold;">총 렌탈료</th>
+
+                    <th style="background: #f0f8ff; border-left: 1px solid #ddd; padding: 8px; text-align: right;">흑백추가</th>
+                    <th style="background: #f0f8ff; padding: 8px; text-align: right;">A4추가</th>
+                    <th style="background: #f0f8ff; padding: 8px; text-align: right;">A3추가</th>
+                    <th style="background: #e1f5fe; padding: 8px; text-align: right; color: #0277bd; font-weight: bold;">예상 렌탈료</th>
+                </tr>
+            </thead>
+            <tbody id="accounting-list">
+                <tr>
+                    <td colspan="9" style="text-align: center; padding: 30px; color: #888;">데이터를 불러오는 중입니다...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<style>
+    .accounting-table th, .accounting-table td { font-size: 0.9rem; vertical-align: middle; padding: 10px 8px; }
+    .text-right { text-align: right; }
+    .bg-gray { background-color: #fdfdfd; border-left: 1px solid #f0f0f0; color: #666; }
+    .bg-gray-bold { background-color: #f1f3f5; border-left: 1px solid #ddd; font-weight: bold; color: #333; }
+    .bg-blue { background-color: #fafdff; border-left: 1px solid #e1f5fe; color: #333; }
+    .bg-blue-bold { background-color: #e3f2fd; border-left: 1px solid #bbdefb; font-weight: bold; color: #0056b3; }
+</style>

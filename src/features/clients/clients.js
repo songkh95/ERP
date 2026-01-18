@@ -3,7 +3,7 @@ export { render } from './clients.view.js';
 
 export async function init() {
     // =========================================================
-    // 0. DOM 요소 전체 선택 (코드 라인 최적화)
+    // 0. DOM 요소 전체 선택
     // =========================================================
     
     // 메인 레이아웃 및 리스트
@@ -104,7 +104,7 @@ export async function init() {
     }
 
     function renderClientList(list) {
-        totalCount.innerText = list.length;
+        if(totalCount) totalCount.innerText = list.length;
         listContainer.innerHTML = '';
         if (list.length === 0) { listContainer.innerHTML = '<div style="padding:20px; text-align:center;">없음</div>'; return; }
         
@@ -125,7 +125,7 @@ export async function init() {
         });
     }
 
-    // 통합 검색 필터 (텍스트 + 메인/서브)
+    // 통합 검색 필터
     function applyFilter() {
         const keyword = searchInput.value.toLowerCase();
         const type = filterType.value; // 'all', 'main', 'sub'
@@ -145,8 +145,8 @@ export async function init() {
         renderClientList(filtered);
     }
 
-    searchInput.addEventListener('keyup', applyFilter);
-    filterType.addEventListener('change', applyFilter);
+    if(searchInput) searchInput.addEventListener('keyup', applyFilter);
+    if(filterType) filterType.addEventListener('change', applyFilter);
 
     // =========================================================
     // 2. 거래처 CRUD (선택, 신규, 저장, 삭제)
@@ -163,14 +163,14 @@ export async function init() {
         detailView.classList.remove('hidden');
 
         // 폼 채우기
-        inpName.value = client.name;
-        inpCode.value = client.client_code;
-        inpContact.value = client.contact_person || '';
-        inpEmail.value = client.email || '';
-        inpAddress.value = client.address || '';
+        if(inpName) inpName.value = client.name;
+        if(inpCode) inpCode.value = client.client_code;
+        if(inpContact) inpContact.value = client.contact_person || '';
+        if(inpEmail) inpEmail.value = client.email || '';
+        if(inpAddress) inpAddress.value = client.address || '';
         
         updateParentOptions();
-        selParentClient.value = client.parent_id || '';
+        if(selParentClient) selParentClient.value = client.parent_id || '';
         
         // 하위 데이터 로드
         loadAssets(id);
@@ -187,49 +187,53 @@ export async function init() {
     }
     
     // 신규 등록 버튼
-    btnAddClient.addEventListener('click', () => {
-        selectedClientId = null;
-        document.querySelectorAll('.client-list-item').forEach(el => el.classList.remove('active'));
+    if(btnAddClient) {
+        btnAddClient.addEventListener('click', () => {
+            selectedClientId = null;
+            document.querySelectorAll('.client-list-item').forEach(el => el.classList.remove('active'));
 
-        emptyState.classList.add('hidden');
-        detailView.classList.remove('hidden');
-        if(clientFormTitle) clientFormTitle.innerHTML = `<i class='bx bx-user-plus'></i> ✨ 새 거래처 등록하기`;
+            emptyState.classList.add('hidden');
+            detailView.classList.remove('hidden');
+            if(clientFormTitle) clientFormTitle.innerHTML = `<i class='bx bx-user-plus'></i> ✨ 새 거래처 등록하기`;
 
-        inpName.value = ''; inpCode.value = ''; inpContact.value = ''; inpEmail.value = ''; inpAddress.value = '';
-        updateParentOptions(); selParentClient.value = '';
+            inpName.value = ''; inpCode.value = ''; inpContact.value = ''; inpEmail.value = ''; inpAddress.value = '';
+            updateParentOptions(); selParentClient.value = '';
 
-        assetListContainer.innerHTML = `<div style="padding:30px; text-align:center; color:#9ca3af; border:2px dashed #e5e7eb;">거래처 정보를 먼저 저장한 후<br>기기를 등록할 수 있습니다.</div>`;
-        usageContainer.innerHTML = `<div style="padding:30px; text-align:center; color:#9ca3af;">신규 등록 모드입니다.</div>`;
-        inpName.focus();
-    });
+            assetListContainer.innerHTML = `<div style="padding:30px; text-align:center; color:#9ca3af; border:2px dashed #e5e7eb;">거래처 정보를 먼저 저장한 후<br>기기를 등록할 수 있습니다.</div>`;
+            usageContainer.innerHTML = `<div style="padding:30px; text-align:center; color:#9ca3af;">신규 등록 모드입니다.</div>`;
+            inpName.focus();
+        });
+    }
 
     // 거래처 저장
-    btnSaveClient.addEventListener('click', async () => {
-        const isSub = selParentClient.value ? true : false;
-        const payload = {
-            name: inpName.value, contact_person: inpContact.value, email: inpEmail.value, 
-            address: inpAddress.value, parent_id: selParentClient.value || null,
-            relation_type: isSub ? '서브' : '메인'
-        };
+    if(btnSaveClient) {
+        btnSaveClient.addEventListener('click', async () => {
+            const isSub = selParentClient.value ? true : false;
+            const payload = {
+                name: inpName.value, contact_person: inpContact.value, email: inpEmail.value, 
+                address: inpAddress.value, parent_id: selParentClient.value || null,
+                relation_type: isSub ? '서브' : '메인'
+            };
 
-        if (!payload.name) return alert('거래처명은 필수입니다.');
+            if (!payload.name) return alert('거래처명은 필수입니다.');
 
-        let res;
-        if (selectedClientId) {
-            res = await supabase.from('clients').update(payload).eq('id', selectedClientId);
-        } else {
-            const newCode = `C-${Math.floor(1000 + Math.random() * 9000)}`;
-            payload.client_code = newCode;
-            res = await supabase.from('clients').insert(payload).select().single();
-        }
+            let res;
+            if (selectedClientId) {
+                res = await supabase.from('clients').update(payload).eq('id', selectedClientId);
+            } else {
+                const newCode = `C-${Math.floor(1000 + Math.random() * 9000)}`;
+                payload.client_code = newCode;
+                res = await supabase.from('clients').insert(payload).select().single();
+            }
 
-        if (res.error) alert('저장 실패: ' + res.error.message);
-        else {
-            alert(selectedClientId ? '수정되었습니다.' : '새 거래처가 등록되었습니다.');
-            if (!selectedClientId && res.data) selectedClientId = res.data.id;
-            loadData(); 
-        }
-    });
+            if (res.error) alert('저장 실패: ' + res.error.message);
+            else {
+                alert(selectedClientId ? '수정되었습니다.' : '새 거래처가 등록되었습니다.');
+                if (!selectedClientId && res.data) selectedClientId = res.data.id;
+                loadData(); 
+            }
+        });
+    }
 
     // 거래처 삭제
     if (btnDeleteClient) {
@@ -248,19 +252,21 @@ export async function init() {
     }
 
     // =========================================================
-    // 3. 기기 목록 (Assets) - 아코디언, 철수, 수정
+    // 3. 기기 목록 (Assets)
     // =========================================================
     async function loadAssets(clientId) {
         assetListContainer.innerHTML = '<div style="color:#999; text-align:center;">로딩 중...</div>';
         
+        // 1. 하위(서브) 거래처 ID 찾기
         const { data: branches } = await supabase.from('clients').select('id, name').eq('parent_id', clientId);
         const targetIds = [clientId];
         const branchMap = {};
         if (branches) branches.forEach(b => { targetIds.push(b.id); branchMap[b.id] = b.name; });
 
+        // 2. 본점 + 지점 기기 모두 조회 (계약 정보 포함)
         const { data: assets } = await supabase
             .from('assets')
-            .select('*, products(model_name), clients(name)')
+            .select('*, products(model_name), clients(name), contracts(*)') // ★ contracts 조인 필수
             .in('client_id', targetIds)
             .order('created_at');
         
@@ -275,14 +281,18 @@ export async function init() {
             const card = document.createElement('div');
             card.className = 'asset-card';
             
+            // 서브 거래처 뱃지
             let subBadge = '';
             if (asset.client_id !== clientId) {
                 const subName = branchMap[asset.client_id] || asset.clients?.name || '서브';
                 subBadge = `<span style="background:#e0f2fe; color:#0369a1; font-size:0.75rem; padding:1px 5px; border-radius:3px; margin-left:6px; border:1px solid #bae6fd; white-space:nowrap;">🔗 ${subName}</span>`;
             }
 
+            // 계약 정보 요약
+            const con = asset.contracts?.[0]; 
+            const feeInfo = con ? `${con.monthly_fee.toLocaleString()}원` : '<span style="color:red; font-size:0.8em;">(계약미설정)</span>';
+
             const showDate = (d) => d || '-';
-            const cost = (n) => n ? n.toLocaleString() : '0';
             let billDayDisplay = asset.billing_day === '말일' ? '말일' : (asset.billing_day ? `${asset.billing_day}일` : '-');
             
             card.innerHTML = `
@@ -292,12 +302,13 @@ export async function init() {
                         <span class="asset-model" title="${asset.products?.model_name || ''}">${asset.products?.model_name || 'Unknown'}</span> 
                         <span class="asset-sn">${asset.serial_number}</span>
                         ${subBadge}
+                        <span style="font-size:0.75rem; color:#666; margin-left:10px;">${feeInfo}</span>
                     </div>
                     <div style="flex-shrink:0; margin-left:10px; display:flex; gap:5px;">
-                        <button class="btn-edit-asset" data-id="${asset.id}" style="color:#2563eb; background:white; border:1px solid #bfdbfe; border-radius:4px; padding:3px 8px; cursor:pointer; font-size:0.75rem; display:flex; align-items:center; gap:3px; white-space:nowrap;">
+                        <button class="btn-edit-asset" style="color:#2563eb; background:white; border:1px solid #bfdbfe; border-radius:4px; padding:3px 8px; cursor:pointer; font-size:0.75rem; display:flex; align-items:center; gap:3px; white-space:nowrap;">
                             <i class='bx bx-edit'></i> 수정
                         </button>
-                        <button class="btn-return-asset" data-id="${asset.id}" style="color:#dc2626; background:white; border:1px solid #fecaca; border-radius:4px; padding:3px 8px; cursor:pointer; font-size:0.75rem; display:flex; align-items:center; gap:3px; white-space:nowrap;">
+                        <button class="btn-return-asset" style="color:#dc2626; background:white; border:1px solid #fecaca; border-radius:4px; padding:3px 8px; cursor:pointer; font-size:0.75rem; display:flex; align-items:center; gap:3px; white-space:nowrap;">
                             <i class='bx bx-log-out-circle'></i> 철수
                         </button>
                     </div>
@@ -308,8 +319,13 @@ export async function init() {
                         <div><span class="info-label">청구방식</span> <span class="info-value">${asset.billing_method || '-'} / ${billDayDisplay}</span></div>
                         <div><span class="info-label">계약일자</span> <span class="info-value">${showDate(asset.contract_date)}</span></div>
                         <div><span class="info-label">만기일</span> <span class="info-value">${showDate(asset.contract_end_date)}</span></div>
-                        <div><span class="info-label">월 기본료</span> <span class="info-value">${cost(asset.rental_cost)}원</span></div>
-                        <div><span class="info-label">기본매수</span> <span class="info-value">흑백:${cost(asset.base_count_bw)} / 칼라:${cost(asset.base_count_col)}</span></div>
+                        
+                        <div class="info-full" style="background:#f8f9fa; padding:8px; border-radius:4px;">
+                            <span class="info-label">💰 계약 요금 상세</span>
+                            <div style="font-weight:500; color:#333;">월 기본료: ${con ? con.monthly_fee.toLocaleString() : 0}원</div>
+                            <div style="font-size:0.85rem; color:#666;">기본제공: 흑백 ${con ? con.base_bw : 0}매 / 컬러 ${con ? con.base_color : 0}매</div>
+                        </div>
+
                         <div class="info-full"><span class="info-label">비고</span><span class="info-value" style="color:#666; font-size:0.8rem;">${asset.memo || '-'}</span></div>
                     </div>
                 </div>`;
@@ -327,7 +343,8 @@ export async function init() {
 
             // 수정 버튼 동작
             card.querySelector('.btn-edit-asset').addEventListener('click', (e) => {
-                e.stopPropagation(); window.openAssetModal(asset);
+                e.stopPropagation(); 
+                window.openAssetModal(asset); // ★ 글로벌 함수 호출
             });
 
             // 철수 버튼 동작
@@ -344,7 +361,7 @@ export async function init() {
     }
 
     // =========================================================
-    // 4. 기기 추가/수정 모달 로직
+    // 4. 기기 추가/수정 모달 로직 (계약 정보 포함)
     // =========================================================
     async function loadProducts() {
         const { data } = await supabase.from('products').select('*').order('model_name');
@@ -353,9 +370,10 @@ export async function init() {
         } else productsList = [];
     }
 
-    btnShowNewModelForm.addEventListener('click', () => { boxSelectModel.classList.add('hidden'); boxNewModelForm.classList.remove('hidden'); });
-    btnCancelNewModel.addEventListener('click', () => { boxNewModelForm.classList.add('hidden'); boxSelectModel.classList.remove('hidden'); });
+    if(btnShowNewModelForm) btnShowNewModelForm.addEventListener('click', () => { boxSelectModel.classList.add('hidden'); boxNewModelForm.classList.remove('hidden'); });
+    if(btnCancelNewModel) btnCancelNewModel.addEventListener('click', () => { boxNewModelForm.classList.add('hidden'); boxSelectModel.classList.remove('hidden'); });
 
+    // ★ window 객체에 할당하여 loadAssets에서도 호출 가능하게 함
     window.openAssetModal = async function(asset = null) {
         await loadProducts();
         document.getElementById('hdn-asset-id').value = asset ? asset.id : '';
@@ -363,7 +381,7 @@ export async function init() {
 
         boxNewModelForm.classList.add('hidden'); boxSelectModel.classList.remove('hidden');
         
-        // 폼 초기화 헬퍼
+        // 기기 정보 채우기
         const setVal = (id, val) => document.getElementById(id).value = val || '';
         setVal('inp-asset-loc', asset?.install_location);
         setVal('inp-con-date', asset?.contract_date);
@@ -372,12 +390,16 @@ export async function init() {
         setVal('inp-cancel-date', asset?.cancel_date);
         setVal('inp-asset-bill-method', asset?.billing_method);
         setVal('inp-asset-bill-day', asset?.billing_day);
-        setVal('inp-rental-cost', asset?.rental_cost || 0);
-        setVal('inp-base-bw', asset?.base_count_bw || 0);
-        setVal('inp-base-col', asset?.base_count_col || 0);
-        setVal('inp-over-bw', asset?.overage_cost_bw || 0);
-        setVal('inp-over-col', asset?.overage_cost_col || 0);
         setVal('inp-memo', asset?.memo);
+
+        // 계약(요금) 정보 채우기
+        const con = asset?.contracts?.[0]; // 조인된 계약정보
+        setVal('inp-contract-fee', con?.monthly_fee || 0);
+        setVal('inp-contract-base-bw', con?.base_bw || 0);
+        setVal('inp-contract-base-col', con?.base_color || 0);
+        setVal('inp-contract-rate-bw', con?.rate_bw || 10);
+        setVal('inp-contract-rate-a4', con?.rate_color_a4 || 100);
+        setVal('inp-contract-rate-a3', con?.rate_color_a3 || 200);
 
         selNewModel.innerHTML = '<option value="">-- 모델 선택 --</option>' + productsList.map(p => `<option value="${p.id}">${p.model_name}</option>`).join('');
         if (asset) { selNewModel.value = asset.product_id; inpNewSerial.value = asset.serial_number; } else { selNewModel.value = ''; inpNewSerial.value = ''; }
@@ -385,61 +407,88 @@ export async function init() {
         assetModal.style.display = 'flex';
     };
 
-    btnAddAssetModal.addEventListener('click', () => { if (!selectedClientId) return alert('거래처를 선택하세요.'); window.openAssetModal(null); });
-    btnAssetCancel.addEventListener('click', () => assetModal.style.display = 'none');
+    if(btnAddAssetModal) btnAddAssetModal.addEventListener('click', () => { if (!selectedClientId) return alert('거래처를 선택하세요.'); window.openAssetModal(null); });
+    if(btnAssetCancel) btnAssetCancel.addEventListener('click', () => assetModal.style.display = 'none');
 
-    btnAssetSave.addEventListener('click', async () => {
-        const assetId = document.getElementById('hdn-asset-id').value; 
-        const serial = document.getElementById('inp-new-serial').value.trim();
-        let finalProductId = selNewModel.value;
-        
-        if (!boxNewModelForm.classList.contains('hidden')) {
-            const maker = inpNewMaker.value.trim(); const modelName = inpNewModelName.value.trim();
-            if (!maker || !modelName) return alert('제조사/모델명 필수');
-            const { data: newProd, error: prodErr } = await supabase.from('products').insert({ brand: maker, model_name: modelName, type: selNewType.value }).select().single();
-            if (prodErr) return alert('모델 등록 실패: ' + prodErr.message);
-            finalProductId = newProd.id;
-        } else if (!finalProductId) return alert('모델을 선택하세요.');
+    // ★ 저장 버튼 (Asset + Contract 동시 저장)
+    if(btnAssetSave) {
+        btnAssetSave.addEventListener('click', async () => {
+            const assetId = document.getElementById('hdn-asset-id').value; 
+            const serial = document.getElementById('inp-new-serial').value.trim();
+            let finalProductId = selNewModel.value;
+            
+            if (!boxNewModelForm.classList.contains('hidden')) {
+                const maker = inpNewMaker.value.trim(); const modelName = inpNewModelName.value.trim();
+                if (!maker || !modelName) return alert('제조사/모델명 필수');
+                const { data: newProd, error: prodErr } = await supabase.from('products').insert({ brand: maker, model_name: modelName, type: selNewType.value }).select().single();
+                if (prodErr) return alert('모델 등록 실패: ' + prodErr.message);
+                finalProductId = newProd.id;
+            } else if (!finalProductId) return alert('모델을 선택하세요.');
 
-        if (!serial) return alert('Serial No. 필수');
-        
-        const { data: duplicate } = await supabase.from('assets').select('id').eq('serial_number', serial).maybeSingle();
-        if (duplicate && (!assetId || duplicate.id != assetId)) return alert('이미 사용 중인 S/N입니다.');
+            if (!serial) return alert('Serial No. 필수');
+            
+            const assetPayload = {
+                client_id: hdnAssetClientId.value || selectedClientId,
+                product_id: finalProductId, serial_number: serial,
+                install_location: document.getElementById('inp-asset-loc').value,
+                contract_date: document.getElementById('inp-con-date').value || null,
+                contract_start_date: document.getElementById('inp-start-date').value || null,
+                contract_end_date: document.getElementById('inp-end-date').value || null,
+                cancel_date: document.getElementById('inp-cancel-date').value || null,
+                billing_method: document.getElementById('inp-asset-bill-method').value,
+                billing_day: document.getElementById('inp-asset-bill-day').value,
+                memo: document.getElementById('inp-memo').value,
+                status: '사용중'
+            };
 
-        const payload = {
-            client_id: hdnAssetClientId.value || selectedClientId,
-            product_id: finalProductId, serial_number: serial,
-            install_location: document.getElementById('inp-asset-loc').value,
-            contract_date: document.getElementById('inp-con-date').value || null,
-            contract_start_date: document.getElementById('inp-start-date').value || null,
-            contract_end_date: document.getElementById('inp-end-date').value || null,
-            cancel_date: document.getElementById('inp-cancel-date').value || null,
-            billing_method: document.getElementById('inp-asset-bill-method').value,
-            billing_day: document.getElementById('inp-asset-bill-day').value,
-            rental_cost: Number(document.getElementById('inp-rental-cost').value) || 0,
-            base_count_bw: Number(document.getElementById('inp-base-bw').value) || 0,
-            base_count_col: Number(document.getElementById('inp-base-col').value) || 0,
-            overage_cost_bw: Number(document.getElementById('inp-over-bw').value) || 0,
-            overage_cost_col: Number(document.getElementById('inp-over-col').value) || 0,
-            memo: document.getElementById('inp-memo').value,
-            status: '사용중'
-        };
+            // 1. Asset 저장
+            let savedAssetId = assetId;
+            const query = assetId 
+                ? supabase.from('assets').update(assetPayload).eq('id', assetId).select()
+                : supabase.from('assets').insert(assetPayload).select();
+                
+            const { data: assetData, error: assetErr } = await query.single();
+            if (assetErr) return alert('기기 저장 실패: ' + assetErr.message);
+            savedAssetId = assetData.id;
 
-        let res = assetId ? await supabase.from('assets').update(payload).eq('id', assetId) : await supabase.from('assets').insert(payload);
-        if (res.error) alert('저장 실패: ' + res.error.message);
-        else { alert('저장되었습니다.'); assetModal.style.display = 'none'; loadAssets(selectedClientId); if(!boxNewModelForm.classList.contains('hidden')) loadProducts(); }
-    });
+            // 2. Contract 저장 (Upsert)
+            const contractPayload = {
+                asset_id: savedAssetId,
+                monthly_fee: Number(document.getElementById('inp-contract-fee').value),
+                base_bw: Number(document.getElementById('inp-contract-base-bw').value),
+                base_color: Number(document.getElementById('inp-contract-base-col').value),
+                rate_bw: Number(document.getElementById('inp-contract-rate-bw').value),
+                rate_color_a4: Number(document.getElementById('inp-contract-rate-a4').value),
+                rate_color_a3: Number(document.getElementById('inp-contract-rate-a3').value)
+            };
+
+            const { error: conErr } = await supabase
+                .from('contracts')
+                .upsert(contractPayload, { onConflict: 'asset_id' });
+
+            if (conErr) alert('계약 정보 저장 실패: ' + conErr.message);
+            else {
+                alert('저장되었습니다.');
+                assetModal.style.display = 'none';
+                loadAssets(selectedClientId);
+                if(!boxNewModelForm.classList.contains('hidden')) loadProducts(); 
+            }
+        });
+    }
 
     // =========================================================
-    // 5. 사용량 (Accounting) 관리 - 조회/수정/삭제
+    // 5. 사용량 (Accounting) 관리
     // =========================================================
     async function loadUsage(clientId) {
         usageContainer.innerHTML = '<div style="text-align:center; padding:20px; color:#666;">데이터를 불러오는 중...</div>';
         try {
+            const { data: branches } = await supabase.from('clients').select('id').eq('parent_id', clientId);
+            const targetIds = [clientId, ...(branches?.map(b => b.id) || [])];
+
             const { data: readings, error } = await supabase
                 .from('meter_readings')
-                .select('*, assets!inner(id, serial_number, products(model_name))')
-                .eq('assets.client_id', clientId)
+                .select('*, assets!inner(id, serial_number, client_id, products(model_name), clients(name))')
+                .in('assets.client_id', targetIds)
                 .order('reading_date', { ascending: false });
 
             if (error) throw error;
@@ -481,6 +530,8 @@ export async function init() {
         document.getElementById('filter-usage-month').addEventListener('change', renderUsageTableRows);
         document.getElementById('filter-usage-day').addEventListener('change', renderUsageTableRows);
         document.getElementById('filter-usage-search').addEventListener('keyup', renderUsageTableRows);
+        
+        // ★ 누락되었던 함수 호출 (이제 정상 작동함)
         enableTableResizing('usage-table');
     }
 
@@ -511,6 +562,7 @@ export async function init() {
                         ${item.assets.products.model_name}
                     </div>
                     <div style="font-size:0.7rem; color:#888;">${item.assets.serial_number}</div>
+                    ${item.assets.clients?.name ? `<div style="font-size:0.7rem; color:#666;">(${item.assets.clients.name})</div>` : ''}
                 </td>
                 <td>${item.reading_bw?.toLocaleString()}</td>
                 <td>${item.reading_col?.toLocaleString()}</td>
@@ -521,22 +573,20 @@ export async function init() {
                 </td>
             </tr>`).join('');
 
-        // 삭제 버튼 이벤트 (즉시 삭제)
         tbody.querySelectorAll('.btn-del-reading').forEach(btn => btn.addEventListener('click', async (e) => {
             const id = e.target.closest('button').dataset.id;
             if (!confirm('정말 삭제하시겠습니까?')) return;
             const { error } = await supabase.from('meter_readings').delete().eq('id', id);
             if (error) alert('삭제 실패: ' + error.message);
-            else loadUsage(selectedClientId); // 목록 갱신
+            else loadUsage(selectedClientId); 
         }));
 
-        // 수정 버튼 이벤트 (모달 열기)
         tbody.querySelectorAll('.btn-edit-reading').forEach(btn => btn.addEventListener('click', (e) => {
             const id = e.target.closest('button').dataset.id;
             const item = usageData.find(d => d.id == id);
             if (item) {
                 inpUsageId.value = item.id;
-                inpUsageDate.value = item.reading_date; // 표시만 (수정 불가)
+                inpUsageDate.value = item.reading_date; 
                 inpUsageBw.value = item.reading_bw || 0;
                 inpUsageCol.value = item.reading_col || 0;
                 inpUsageA3.value = item.reading_col_a3 || 0;
@@ -545,7 +595,6 @@ export async function init() {
         }));
     }
 
-    // 사용량 수정 저장 (날짜 제외)
     if (btnUsageSave) {
         btnUsageSave.addEventListener('click', async () => {
             const id = inpUsageId.value;
@@ -561,24 +610,8 @@ export async function init() {
     }
     if (btnUsageCancel) btnUsageCancel.addEventListener('click', () => usageEditModal.style.display = 'none');
 
-    function enableTableResizing(tableId) {
-        const table = document.getElementById(tableId);
-        if(!table) return;
-        table.querySelectorAll('th').forEach(th => {
-            const handle = th.querySelector('.resize-handle');
-            if (!handle) return;
-            handle.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                const startX = e.pageX; const startW = th.offsetWidth;
-                const onMove = (ev) => { if (startW + (ev.pageX - startX) > 30) th.style.width = `${startW + (ev.pageX - startX)}px`; };
-                const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); handle.classList.remove('active'); };
-                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp); handle.classList.add('active');
-            });
-        });
-    }
-
     // =========================================================
-    // 6. 엑셀 가져오기 / 내보내기 (누락 복구됨)
+    // 6. 엑셀 가져오기 / 내보내기
     // =========================================================
     if(btnExcelExport) {
         btnExcelExport.addEventListener('click', () => {
@@ -634,11 +667,28 @@ export async function init() {
     }
 
     // =========================================================
-    // 7. UI 유틸 (리사이징, 아코디언)
+    // 7. UI 유틸 (리사이징, 아코디언, 테이블리사이징)
     // =========================================================
     enableResizing();
     setupAccordion('header-client-info', 'body-client-info', 'icon-client-info');
     setupAccordion('header-asset-info', 'body-asset-info', 'icon-asset-info');
+
+    // ★ 이 함수가 누락되어 "enableTableResizing is not defined" 에러가 났던 것입니다.
+    function enableTableResizing(tableId) {
+        const table = document.getElementById(tableId);
+        if(!table) return;
+        table.querySelectorAll('th').forEach(th => {
+            const handle = th.querySelector('.resize-handle');
+            if (!handle) return;
+            handle.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                const startX = e.pageX; const startW = th.offsetWidth;
+                const onMove = (ev) => { if (startW + (ev.pageX - startX) > 30) th.style.width = `${startW + (ev.pageX - startX)}px`; };
+                const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); handle.classList.remove('active'); };
+                document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp); handle.classList.add('active');
+            });
+        });
+    }
 
     function enableResizing() {
         const container = document.getElementById('layout-container');

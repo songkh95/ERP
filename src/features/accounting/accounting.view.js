@@ -18,79 +18,98 @@ export async function render() {
         .tab-btn:hover { color: #374151; }
         .tab-btn.active { color: #2563eb; border-bottom: 2px solid #2563eb; }
 
-        /* 테이블 스타일 */
-        .data-table { width: 100%; border-collapse: collapse; margin-top: 0; }
-        .data-table th { background: #f9fafb; padding: 12px; text-align: center; border-bottom: 1px solid #e5e7eb; color: #4b5563; font-weight: 600; }
-        .data-table td { padding: 8px 12px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+        /* 테이블 공통 */
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 0; font-size: 0.9rem; }
+        .data-table th { background: #f9fafb; padding: 8px 10px; text-align: center; border-bottom: 1px solid #e5e7eb; border-right: 1px solid #eee; vertical-align: middle; }
+        .data-table td { padding: 8px 10px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; border-right: 1px solid #f9f9f9; }
         
-        /* 숫자 입력 화살표 제거 */
-        input[type=number]::-webkit-outer-spin-button,
+        /* 컬럼 스타일 */
+        .col-prev { background-color: #f8f9fa; color: #666; } /* 전월 배경 */
+        .col-curr { background-color: #f0f7ff; color: #000; } /* 당월 배경 */
+        .text-right { text-align: right; }
+        .text-bold { font-weight: bold; }
+        .text-blue { color: #0056b3; }
+        .text-red { color: #dc3545; }
+
+        /* 입력창 스타일 */
         input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .inp-reading { width: 100%; text-align: right; border: 1px solid #ccc; padding: 5px; border-radius: 4px; font-weight: bold; }
+        .inp-reading:focus { border-color: #2563eb; outline: none; box-shadow: 0 0 0 2px rgba(37,99,235,0.1); }
     </style>
 
     <section class="accounting-page" style="padding: 20px;">
         <h1 style="font-size:1.5rem; font-weight:bold; margin-bottom:20px;">
-            🖨️ 사용매수(검침) 관리
+            🖨️ 사용매수 및 요금 통합 관리
         </h1>
         
         <div class="tab-header">
-            <button class="tab-btn active" data-target="panel-register">📝 검침 입력 (등록)</button>
-            <button class="tab-btn" data-target="panel-history">📋 검침 이력 (조회/수정)</button>
+            <button class="tab-btn active" data-target="panel-register">📝 검침 입력 및 요금확인</button>
+            <button class="tab-btn" data-target="panel-history">📋 검침 이력 (수정/삭제)</button>
         </div>
 
         <div id="panel-register">
-            <div class="card" style="padding:15px; margin-bottom:20px;">
-                <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:15px; flex-wrap:wrap;">
+            <div class="card" style="padding:15px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:flex-end;">
+                <div style="display:flex; gap:15px; align-items:center; flex-wrap:wrap;">
+                    <div>
+                        <label style="display:block; font-size:0.8rem; color:#666; margin-bottom:4px;">검침 기준월 (입력월)</label>
+                        <input type="month" id="inp-reg-date" class="form-input" style="width:140px; font-weight:bold;">
+                    </div>
                     
-                    <div style="display:flex; gap:15px; align-items:center;">
-                        <div>
-                            <label style="display:block; font-size:0.8rem; color:#666; margin-bottom:4px;">검침 일자 (등록일)</label>
-                            <input type="month" id="inp-reg-date" class="form-input" style="width:140px; font-weight:bold;">
-                        </div>
-                        
-                        <div>
-                            <label style="display:block; font-size:0.8rem; color:#666; margin-bottom:4px;">청구일 필터</label>
-                            <select id="sel-bill-day" class="form-input" style="width:140px;">
-                                ${dayOptions}
-                            </select>
-                        </div>
-
-                        <div style="padding-top:18px;">
-                            <button id="btn-load-assets" class="btn-secondary"><i class='bx bx-refresh'></i> 불러오기</button>
-                        </div>
+                    <div>
+                        <label style="display:block; font-size:0.8rem; color:#666; margin-bottom:4px;">청구일 필터</label>
+                        <select id="sel-bill-day" class="form-input" style="width:140px;">
+                            ${dayOptions}
+                        </select>
                     </div>
 
-                    <div style="flex:1; max-width:300px;">
-                        <label style="display:block; font-size:0.8rem; color:#666; margin-bottom:4px;">거래처 검색</label>
-                        <div style="position:relative;">
-                            <i class='bx bx-search' style="position:absolute; left:10px; top:10px; color:#999;"></i>
-                            <input type="text" id="inp-search-register" class="form-input" placeholder="거래처명..." style="padding-left:30px; width:100%;">
-                        </div>
+                    <div style="padding-top:18px;">
+                        <button id="btn-load-assets" class="btn-secondary"><i class='bx bx-refresh'></i> 데이터 불러오기</button>
+                    </div>
+                </div>
+
+                <div style="width: 300px;">
+                    <label style="display:block; font-size:0.8rem; color:#666; margin-bottom:4px;">거래처명 검색</label>
+                    <div style="position:relative;">
+                        <i class='bx bx-search' style="position:absolute; left:10px; top:10px; color:#999;"></i>
+                        <input type="text" id="inp-search-register" class="form-input" placeholder="검색어 입력..." style="padding-left:30px; width:100%;">
                     </div>
                 </div>
             </div>
 
-            <div class="card" style="padding:0; overflow:hidden;">
-                <table class="data-table">
+            <div class="card" style="padding:0; overflow-x:auto;">
+                <table class="data-table" style="min-width: 1400px;">
                     <thead>
                         <tr>
-                            <th style="width:18%;">거래처명 / 청구일</th>
-                            <th style="width:20%;">모델명 (S/N)</th>
-                            <th style="width:10%;">구분</th>
-                            <th style="width:12%;">전월(최근) 지침</th>
-                            <th style="width:12%;">금월 지침 (입력)</th>
-                            <th style="width:10%;">사용량</th>
-                            <th style="width:10%;">저장</th>
+                            <th rowspan="2" style="width:200px;">거래처 / 기기 정보</th>
+                            <th rowspan="2" style="width:60px;">구분</th>
+                            
+                            <th colspan="4" class="col-prev" style="border-left:2px solid #ddd;">📉 전월 (확정)</th>
+                            
+                            <th colspan="5" class="col-curr" style="border-left:2px solid #2563eb;">📈 당월 (입력 및 예상)</th>
+                            
+                            <th rowspan="2" style="width:80px; border-left:1px solid #ddd;">저장</th>
+                        </tr>
+                        <tr>
+                            <th class="col-prev">지침</th>
+                            <th class="col-prev">사용량</th>
+                            <th class="col-prev">추가금</th>
+                            <th class="col-prev text-bold">총 청구액</th>
+
+                            <th class="col-curr" style="border-left:2px solid #2563eb;">전월지침</th>
+                            <th class="col-curr" style="width:100px;">금월지침(입력)</th>
+                            <th class="col-curr">사용량</th>
+                            <th class="col-curr">추가금(예상)</th>
+                            <th class="col-curr text-bold text-blue">총 예상액</th>
                         </tr>
                     </thead>
                     <tbody id="register-tbody">
-                        <tr><td colspan="7" style="padding:40px; text-align:center; color:#999;">데이터를 불러와주세요.</td></tr>
+                        <tr><td colspan="12" style="padding:40px; text-align:center; color:#999;">[불러오기] 버튼을 눌러 데이터를 조회하세요.</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
-<div id="panel-history" class="hidden">
+        <div id="panel-history" class="hidden">
             <div class="card" style="padding:15px; margin-bottom:20px;">
                 <div style="display:flex; justify-content:space-between; align-items:flex-end;">
                     <div style="display:flex; gap:15px; align-items:center;">
@@ -131,7 +150,7 @@ export async function render() {
 
     </section>
 
-<div id="edit-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+    <div id="edit-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
         <div class="card" style="width:400px; padding:25px;">
             <h3 style="margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">✏️ 검침 이력 수정</h3>
             <input type="hidden" id="hdn-edit-id">

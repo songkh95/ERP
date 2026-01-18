@@ -9,7 +9,7 @@
         </div>
     </div>
 
-<div id="form-panel" class="input-panel hidden">
+    <div id="form-panel" class="input-panel hidden">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <h3 id="form-title" style="margin:0;">📝 거래처 상세 정보 입력</h3>
             <div>
@@ -19,34 +19,34 @@
         </div>
         
         <div class="form-group-box">
-    <div class="group-title">🏢 기본 정보</div>
-    <div class="grid-3">
-        <div class="field">
-            <label>거래처명 <span style="color:red">*</span></label>
-            <input type="text" id="inp-name" placeholder="(주)우리회사">
+            <div class="group-title">🏢 기본 정보</div>
+            <div class="grid-3">
+                <div class="field">
+                    <label>거래처명 <span style="color:red">*</span></label>
+                    <input type="text" id="inp-name" placeholder="(주)우리회사">
+                </div>
+                <div class="field">
+                    <label>고객번호</label>
+                    <input type="text" id="inp-code" placeholder="자동 생성됨" readonly>
+                </div>
+                
+                <div class="field">
+                    <label>담당자</label>
+                    <input type="text" id="inp-contact" placeholder="이름 / 연락처">
+                </div>
+                <div class="field">
+                    <label>수취인명</label>
+                    <input type="text" id="inp-recipient" placeholder="세금계산서 담당자 등">
+                </div>
+                <div class="field">
+                    <label>수취부서(설치장소)</label>
+                    <input type="text" id="inp-dept" placeholder="예: 2층 총무팀">
+                </div>
+            </div>
         </div>
-        <div class="field">
-            <label>고객번호</label>
-            <input type="text" id="inp-code" placeholder="자동 생성됨" readonly>
-        </div>
-        
-        <div class="field">
-            <label>담당자</label>
-            <input type="text" id="inp-contact" placeholder="이름 / 연락처">
-        </div>
-        <div class="field">
-            <label>수취인명</label>
-            <input type="text" id="inp-recipient" placeholder="세금계산서 담당자 등">
-        </div>
-        <div class="field">
-            <label>수취부서(설치장소)</label>
-            <input type="text" id="inp-dept" placeholder="예: 2층 총무팀">
-        </div>
-    </div>
-</div>
 
         <div class="form-group-box">
-            <div class="group-title">📅 계약 정보</div>
+            <div class="group-title">📅 계약 기간 및 형태</div>
             <div class="grid-4">
                 <div class="field">
                     <label>계약형태</label>
@@ -80,7 +80,7 @@
             <div class="group-title">
                 🖨️ 청구 정보 
                 <span style="font-size:0.8rem; font-weight:normal; color:#e74c3c; margin-left:5px;">
-                    (※ 기기 정보는 하단 '보유 기기 관리'에서 등록해 주세요.)
+                    (※ 기기별 상세 요금은 아래 '보유 기기 관리'에서 설정합니다.)
                 </span>
             </div>
             
@@ -103,9 +103,9 @@
 
         <div id="group-assets" class="form-group-box hidden">
             <div class="group-title">
-                🖨️ 보유 기기 관리
+                🖨️ 보유 기기 및 임대 조건 관리
                 <span style="font-size:0.8rem; font-weight:normal; color:#666; margin-left:10px;">
-                    (이 거래처에 설치된 복합기를 관리합니다)
+                    (이 거래처에 설치된 기기와 요금제를 관리합니다)
                 </span>
             </div>
 
@@ -115,12 +115,46 @@
                 </ul>
             </div>
 
-            <div style="background:#e3f2fd; padding:15px; border-radius:6px;">
+            <div style="background:#e3f2fd; padding:15px; border-radius:6px; border:1px solid #bbdefb;">
                 <div style="display:flex; gap:10px; margin-bottom:10px;">
                     <button id="tab-stock" class="btn-tab active">📦 재고에서 가져오기</button>
                     <button id="tab-new" class="btn-tab">✨ 신규 기기 등록</button>
                 </div>
 
+                <div class="contract-settings" style="background: white; padding: 12px; border-radius: 4px; margin-bottom: 12px; border: 1px dashed #2196F3;">
+                    <div style="font-weight: bold; margin-bottom: 8px; font-size: 0.9em; color: #1976D2;">💰 기기별 임대 요금 설정 (추가할 기기에 적용)</div>
+                    
+                    <div style="margin-bottom: 8px;">
+                        <label style="font-size: 0.85em;">월 기본 렌탈료(원)</label>
+                        <input type="number" id="contract-monthly-fee" placeholder="60000" style="width: 100%; padding: 5px; border: 1px solid #ccc;">
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.85em;">흑백 기본매수(장)</label>
+                            <input type="number" id="contract-base-bw" placeholder="1000" style="width: 100%; padding: 5px; border: 1px solid #ccc;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.85em;">컬러 기본매수(장)</label>
+                            <input type="number" id="contract-base-color" placeholder="100" style="width: 100%; padding: 5px; border: 1px solid #ccc;">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.85em;">흑백 초과(원)</label>
+                            <input type="number" id="contract-rate-bw" value="10" style="width: 100%; padding: 5px; border: 1px solid #ccc;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.85em;">컬러(A4) 초과(원)</label>
+                            <input type="number" id="contract-rate-a4" value="100" style="width: 100%; padding: 5px; border: 1px solid #ccc;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.85em;">컬러(A3) 초과(원)</label>
+                            <input type="number" id="contract-rate-a3" value="200" style="width: 100%; padding: 5px; border: 1px solid #ccc;">
+                        </div>
+                    </div>
+                </div>
                 <div id="panel-stock" style="display:flex; gap:5px;">
                     <select id="sel-stock-asset" style="flex:1; padding:8px;">
                         <option value="">-- 창고(재고) 기기 선택 --</option>
